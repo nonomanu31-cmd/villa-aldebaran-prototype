@@ -44,6 +44,10 @@ const rules: Record<AgentId, WebAccessRule> = {
     level: "limited",
     note: "Recherche ciblee sur formulaires, procedures, contacts et services.",
   },
+  conseil3ia: {
+    level: "none",
+    note: "Agent de confrontation multi-fournisseurs ; pas de recherche web autonome ici.",
+  },
 };
 
 const levelLabels: Record<WebAccessLevel, string> = {

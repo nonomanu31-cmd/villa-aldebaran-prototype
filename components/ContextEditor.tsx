@@ -1,0 +1,39 @@
+type ContextEditorProps = {
+  value: string;
+  onChange: (value: string) => void;
+};
+
+export function ContextEditor({ value, onChange }: ContextEditorProps) {
+  return (
+    <section style={styles.card}>
+      <h2 style={styles.title}>Contexte</h2>
+      <textarea
+        style={styles.textarea}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </section>
+  );
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  card: {
+    background: "#fff",
+    borderRadius: 20,
+    padding: 16,
+    border: "1px solid rgba(31,40,55,0.08)",
+  },
+  title: {
+    marginTop: 0,
+    color: "#1d2433",
+  },
+  textarea: {
+    width: "100%",
+    minHeight: 140,
+    resize: "vertical",
+    borderRadius: 16,
+    border: "1px solid rgba(31,40,55,0.12)",
+    padding: 14,
+    font: "inherit",
+  },
+};

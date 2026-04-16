@@ -1,0 +1,78 @@
+import { NextResponse } from "next/server";
+import { runAgentModel } from "../../../../lib/openai";
+import { runProviderCouncil } from "../../../../lib/provider-council";
+import { appendHistory } from "../../../../lib/storage";
+import type { AgentRunRequest } from "../../../../lib/types";
+
+export async function POST(request: Request) {
+  const body = (await request.json()) as AgentRunRequest;
+
+  try {
+    if (body.agentId === "conseil3ia") {
+      const councilResult = await runProviderCouncil({
+        context: body.context,
+        userPrompt: body.userPrompt,
+      });
+
+      await appendHistory({
+        id: crypto.randomUUID(),
+        agentId: "conseil3ia",
+        context: body.context,
+        userPrompt: body.userPrompt,
+        response: councilResult.message,
+        createdAt: new Date().toISOString(),
+      });
+
+      return NextResponse.json({
+        agentId: "conseil3ia",
+        promptPreview: councilResult.promptPreview,
+        message: councilResult.message,
+        sources: [],
+      });
+    }
+
+    const result = await runAgentModel({
+      agentId: body.agentId,
+      context: body.context,
+      userPrompt: body.userPrompt,
+      useWeb: body.useWeb,
+    });
+
+    if (result.missingApiKey) {
+      return NextResponse.json({
+        agentId: result.agent.id,
+        promptPreview: result.promptPreview,
+        message: result.message,
+        sources: result.sources,
+      });
+    }
+
+    await appendHistory({
+      id: crypto.randomUUID(),
+      agentId: result.agent.id,
+      context: body.context,
+      userPrompt: body.userPrompt,
+      response: result.message,
+      createdAt: new Date().toISOString(),
+    });
+
+    return NextResponse.json({
+      agentId: result.agent.id,
+      promptPreview: result.promptPreview,
+      message: result.message,
+      sources: result.sources,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        agentId: body.agentId,
+        promptPreview: "",
+        message:
+          error instanceof Error
+            ? `Erreur reseau ou serveur : ${error.message}`
+            : "Erreur reseau ou serveur inconnue.",
+      },
+      { status: 500 }
+    );
+  }
+}

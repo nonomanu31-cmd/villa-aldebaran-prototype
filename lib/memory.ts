@@ -1,5 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { readPersistedJson, resolveDataFile, writePersistedJson } from "./persistence";
 
 export type MemoryItemType = "decision" | "alert" | "openQuestion";
 
@@ -18,7 +17,8 @@ export type WorkingMemory = {
   openQuestions: MemoryItem[];
 };
 
-const memoryPath = path.join(process.cwd(), "data", "working-memory.json");
+const memoryPath = resolveDataFile("working-memory.json");
+const memoryBlobPath = "app-data/working-memory.json";
 
 const emptyMemory: WorkingMemory = {
   activeContext: "Villa Aldebaran - memoire de travail initiale.",
@@ -28,20 +28,11 @@ const emptyMemory: WorkingMemory = {
 };
 
 export async function readWorkingMemory(): Promise<WorkingMemory> {
-  try {
-    const content = await readFile(memoryPath, "utf8");
-    return JSON.parse(content) as WorkingMemory;
-  } catch {
-    return emptyMemory;
-  }
+  return readPersistedJson(memoryBlobPath, memoryPath, emptyMemory);
 }
 
 export async function writeWorkingMemory(memory: WorkingMemory) {
-  try {
-    await writeFile(memoryPath, JSON.stringify(memory, null, 2), "utf8");
-  } catch (error) {
-    console.warn("Working memory persistence unavailable in this environment.", error);
-  }
+  await writePersistedJson(memoryBlobPath, memoryPath, memory);
 }
 
 export async function updateActiveContext(activeContext: string) {

@@ -5,6 +5,11 @@ export const metadata = {
   title: "Villa Aldebaran",
   description: "Cockpit multi-agents Villa Aldebaran",
   applicationName: "Villa Aldebaran",
+  icons: {
+    icon: "/icons/icon-192.svg",
+    apple: "/icons/icon-192.svg",
+    shortcut: "/icons/icon-192.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

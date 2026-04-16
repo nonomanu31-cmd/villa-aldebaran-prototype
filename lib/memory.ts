@@ -37,7 +37,11 @@ export async function readWorkingMemory(): Promise<WorkingMemory> {
 }
 
 export async function writeWorkingMemory(memory: WorkingMemory) {
-  await writeFile(memoryPath, JSON.stringify(memory, null, 2), "utf8");
+  try {
+    await writeFile(memoryPath, JSON.stringify(memory, null, 2), "utf8");
+  } catch (error) {
+    console.warn("Working memory persistence unavailable in this environment.", error);
+  }
 }
 
 export async function updateActiveContext(activeContext: string) {
@@ -68,4 +72,3 @@ export async function appendMemoryItem(
   await writeWorkingMemory(memory);
   return memory;
 }
-

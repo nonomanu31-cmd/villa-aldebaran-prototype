@@ -16,6 +16,9 @@ export async function readHistory(): Promise<AgentRunRecord[]> {
 export async function appendHistory(record: AgentRunRecord) {
   const history = await readHistory();
   history.unshift(record);
-  await writeFile(historyPath, JSON.stringify(history, null, 2), "utf8");
+  try {
+    await writeFile(historyPath, JSON.stringify(history, null, 2), "utf8");
+  } catch (error) {
+    console.warn("History persistence unavailable in this environment.", error);
+  }
 }
-

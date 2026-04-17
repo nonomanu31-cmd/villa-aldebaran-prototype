@@ -3,6 +3,7 @@ import { appendHistory } from "../../../../lib/storage";
 import { findAgentById } from "../../../../lib/agents";
 import { runAgentModel } from "../../../../lib/openai";
 import type { AgentId } from "../../../../lib/types";
+import { archiveMeetingReport } from "../../../../lib/meeting-reports";
 
 type MeetingRequest = {
   participantIds: AgentId[];
@@ -193,14 +194,31 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({
+    const meetingResponse = {
       participantIds,
       moderatorId,
       agenda,
       transcript,
       synthesis,
       minutes,
+    };
+
+    const archivedReport = await archiveMeetingReport({
+      meeting: meetingResponse,
+      context: body.context,
+      userPrompt: body.userPrompt,
     });
+
+    await appendHistory({
+      id: crypto.randomUUID(),
+      agentId: "administratif",
+      context: body.context,
+      userPrompt: `[Reunion IA] Rapport archive - ${archivedReport.title}`,
+      response: archivedReport.content,
+      createdAt: archivedReport.createdAt,
+    });
+
+    return NextResponse.json(meetingResponse);
   } catch (error) {
     return NextResponse.json(
       {

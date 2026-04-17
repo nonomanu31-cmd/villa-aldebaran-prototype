@@ -40,9 +40,12 @@ export function ResponsePanel({
 
   return (
     <section>
-      <h2 style={styles.title}>Reponse</h2>
+      <div style={styles.header}>
+        <h2 style={styles.title}>Lecture agent</h2>
+        <span style={styles.statusPill}>{selectedAgentId.toUpperCase()}</span>
+      </div>
       <div style={styles.card}>
-        <p style={styles.meta}>Agent actif : {selectedAgentId.toUpperCase()}</p>
+        <p style={styles.meta}>Reponse active du poste de pilotage</p>
         <div style={styles.outputShell}>
           {isLoading ? (
             <pre style={styles.pre}>Generation en cours...</pre>
@@ -148,12 +151,30 @@ export function ResponsePanel({
 }
 
 const styles: Record<string, React.CSSProperties> = {
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
   title: {
-    marginTop: 0,
+    margin: 0,
+    fontSize: 18,
     color: "#1d2433",
   },
+  statusPill: {
+    display: "inline-block",
+    padding: "7px 10px",
+    borderRadius: 999,
+    background: "#eef5f0",
+    border: "1px solid rgba(31,75,63,0.12)",
+    color: "#1f4b3f",
+    fontSize: 12,
+    fontWeight: 700,
+  },
   card: {
-    background: "#faf9f6",
+    background: "#f7f7f5",
     borderRadius: 20,
     padding: 16,
     border: "1px solid rgba(31,40,55,0.08)",
@@ -168,6 +189,8 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#ffffff",
     border: "1px solid rgba(31,40,55,0.08)",
     padding: 14,
+    maxHeight: "56vh",
+    overflow: "auto",
   },
   sections: {
     display: "grid",
@@ -176,7 +199,7 @@ const styles: Record<string, React.CSSProperties> = {
   sectionCard: {
     borderRadius: 14,
     padding: 12,
-    background: "#f8f7f4",
+    background: "#fbfbfa",
     border: "1px solid rgba(31,40,55,0.06)",
   },
   sectionTitle: {

@@ -11,7 +11,7 @@ export function HistoryList({ history }: HistoryListProps) {
         <div style={styles.item}>
           <strong>Aucun echange sauvegarde pour l&apos;instant.</strong>
           <p style={styles.text}>
-            La V1 stocke localement les executions d&apos;agents dans `data/history.json`.
+            Les executions d&apos;agents et les reunions archivees apparaitront ici.
           </p>
         </div>
       </div>
@@ -24,6 +24,9 @@ export function HistoryList({ history }: HistoryListProps) {
         <article key={entry.id} style={styles.item}>
           <strong style={styles.title}>{entry.agentId.toUpperCase()}</strong>
           <p style={styles.meta}>{new Date(entry.createdAt).toLocaleString("fr-FR")}</p>
+          {entry.userPrompt.startsWith("[Reunion IA]") ? (
+            <p style={styles.meetingBadge}>Archive de reunion</p>
+          ) : null}
           <p style={styles.label}>Demande</p>
           <p style={styles.text}>{entry.userPrompt}</p>
           <p style={styles.label}>Reponse</p>
@@ -52,6 +55,16 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "6px 0 10px",
     color: "#6a6f79",
     fontSize: 13,
+  },
+  meetingBadge: {
+    margin: "0 0 10px",
+    display: "inline-block",
+    borderRadius: 999,
+    padding: "6px 10px",
+    background: "#eef5f0",
+    color: "#1f4b3f",
+    fontSize: 12,
+    fontWeight: 700,
   },
   label: {
     margin: "10px 0 4px",

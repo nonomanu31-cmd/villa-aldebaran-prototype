@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import type { DocumentEntry } from "../lib/documents";
 
 type LoadedDocument = DocumentEntry & {
@@ -36,9 +37,17 @@ export function DocumentLibrary() {
   return (
     <main style={styles.page}>
       <aside style={styles.sidebar}>
+        <div style={styles.topLinks}>
+          <Link href="/cockpit" style={styles.topLink}>
+            Cockpit
+          </Link>
+          <Link href="/history" style={styles.topLink}>
+            Historique
+          </Link>
+        </div>
         <h1 style={styles.title}>Centre documentaire</h1>
         <p style={styles.text}>
-          Documents structurants du systeme, prompts finaux et references prototype.
+          Documents structurants du systeme, prompts finaux, references prototype et comptes rendus de reunion.
         </p>
         <div style={styles.list}>
           {documents.map((document) => {
@@ -105,6 +114,22 @@ const styles: Record<string, React.CSSProperties> = {
   title: {
     margin: 0,
     color: "#1d2433",
+  },
+  topLinks: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+    marginBottom: 14,
+  },
+  topLink: {
+    display: "inline-block",
+    padding: "8px 12px",
+    borderRadius: 999,
+    textDecoration: "none",
+    background: "#eef5f0",
+    color: "#1f4b3f",
+    border: "1px solid rgba(31,75,63,0.12)",
+    fontWeight: 700,
   },
   text: {
     color: "#566072",
@@ -173,4 +198,3 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#243042",
   },
 };
-

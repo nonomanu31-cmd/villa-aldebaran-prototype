@@ -272,21 +272,57 @@ export function CockpitClient() {
 
   return (
     <main style={styles.page(isMobile)}>
+      <header style={styles.workspaceHeader(isMobile)}>
+        <div style={styles.workspaceIdentity}>
+          <p style={styles.workspaceKicker}>Villa Aldebaran</p>
+          <h1 style={styles.workspaceTitle}>Poste de pilotage multi-agents</h1>
+          <p style={styles.workspaceSubtitle}>
+            Decision, arbitrage, reunion, documents et memoire dans un seul espace de travail.
+          </p>
+        </div>
+        <div style={styles.workspaceActions}>
+          <Link href="/history" style={styles.workspaceActionPrimary}>
+            Historique
+          </Link>
+          <Link href="/documents" style={styles.workspaceActionSecondary}>
+            Centre documentaire
+          </Link>
+        </div>
+      </header>
+
       <aside style={styles.sidebar(isMobile)}>
-        <h2 style={styles.sectionTitle}>Agents</h2>
+        <div style={styles.navRow}>
+          <Link href="/" style={styles.navLink}>
+            Accueil
+          </Link>
+          <Link href="/history" style={styles.navLink}>
+            Historique
+          </Link>
+          <Link href="/documents" style={styles.navLink}>
+            Documents
+          </Link>
+        </div>
+        <div style={styles.panelSection}>
+          <p style={styles.sectionEyebrow}>Equipe</p>
+          <h2 style={styles.sectionTitle}>Agents</h2>
+        </div>
         <AgentSelector
           agents={agents}
           selectedAgentId={selectedAgentId}
           onSelect={setSelectedAgentId}
         />
-        <div style={{ marginTop: 16 }}>
+        <div style={styles.panelGroup}>
+          <div style={styles.panelSection}>
+            <p style={styles.sectionEyebrow}>Orchestration</p>
+            <h3 style={styles.subsectionTitle}>Reunion IA</h3>
+          </div>
           <MeetingSelector
             agents={agents}
             selectedAgentIds={meetingAgentIds}
             onToggle={toggleMeetingAgent}
           />
         </div>
-        <div style={{ marginTop: 16 }}>
+        <div style={styles.panelGroup}>
           <MeetingSettings
             moderatorId={meetingModeratorId}
             agenda={meetingAgenda}
@@ -298,7 +334,11 @@ export function CockpitClient() {
             canRunMeeting={meetingAgentIds.length > 0}
           />
         </div>
-        <div style={{ marginTop: 16 }}>
+        <div style={styles.panelGroup}>
+          <div style={styles.panelSection}>
+            <p style={styles.sectionEyebrow}>Capacites</p>
+            <h3 style={styles.subsectionTitle}>Acces Internet</h3>
+          </div>
           <WebAccessPanel />
         </div>
         <div style={styles.helpCard}>
@@ -313,6 +353,17 @@ export function CockpitClient() {
       </aside>
 
       <section style={styles.center}>
+        <div style={styles.workspaceStrip}>
+          <div style={styles.workspaceChip}>
+            Agent actif : <strong>{selectedAgent.label}</strong>
+          </div>
+          <div style={styles.workspaceChip}>
+            Reunion : <strong>{meetingAgentIds.length} participant(s)</strong>
+          </div>
+          <div style={styles.workspaceChip}>
+            Web : <strong>{canAgentUseWeb(selectedAgentId) ? "autorise" : "ferme"}</strong>
+          </div>
+        </div>
         <ContextEditor value={context} onChange={setContext} />
         <PromptConsole
           value={userPrompt}
@@ -364,35 +415,168 @@ const styles = {
   page: (isMobile: boolean): React.CSSProperties => ({
     minHeight: "100vh",
     display: "grid",
-    gridTemplateColumns: isMobile ? "1fr" : "280px minmax(0,1fr) 360px",
-    gap: 16,
-    padding: 16,
-    background: "#f4f1ea",
+    gridTemplateColumns: isMobile ? "1fr" : "290px minmax(0,1fr) 390px",
+    gridTemplateRows: isMobile ? "auto auto auto auto" : "auto 1fr",
+    gap: 18,
+    padding: 18,
+    background:
+      "linear-gradient(180deg, #edf2ec 0%, #f4f1ea 36%, #f2eee6 100%)",
   }),
+  workspaceHeader: (isMobile: boolean): React.CSSProperties => ({
+    gridColumn: isMobile ? "1 / -1" : "1 / -1",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: isMobile ? "flex-start" : "center",
+    gap: 16,
+    flexDirection: isMobile ? "column" : "row",
+    padding: "16px 18px",
+    borderRadius: 18,
+    background: "rgba(255,255,255,0.9)",
+    border: "1px solid rgba(31,40,55,0.08)",
+    boxShadow: "0 10px 24px rgba(31,40,55,0.06)",
+  }),
+  workspaceIdentity: {
+    display: "grid",
+    gap: 2,
+  },
+  workspaceKicker: {
+    margin: 0,
+    fontSize: 11,
+    letterSpacing: "0.12em",
+    textTransform: "uppercase" as const,
+    color: "#5f6a62",
+  },
+  workspaceTitle: {
+    margin: "6px 0 0",
+    fontSize: 24,
+    lineHeight: 1.15,
+    color: "#1d2433",
+    fontWeight: 700,
+  },
+  workspaceSubtitle: {
+    margin: "6px 0 0",
+    color: "#5f6a62",
+    fontSize: 14,
+    lineHeight: 1.5,
+  },
+  workspaceActions: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap" as const,
+  },
+  workspaceActionPrimary: {
+    display: "inline-block",
+    padding: "10px 14px",
+    borderRadius: 999,
+    background: "#1f4b3f",
+    color: "#fff",
+    textDecoration: "none",
+    fontWeight: 700,
+    fontSize: 14,
+  },
+  workspaceActionSecondary: {
+    display: "inline-block",
+    padding: "10px 14px",
+    borderRadius: 999,
+    background: "#fff",
+    color: "#1d2433",
+    textDecoration: "none",
+    border: "1px solid rgba(31,40,55,0.12)",
+    fontWeight: 700,
+    fontSize: 14,
+  },
   sidebar: (isMobile: boolean): React.CSSProperties => ({
-    background: "#fffdf8",
+    background: "rgba(255,253,248,0.94)",
     borderRadius: 20,
     padding: 16,
     border: "1px solid rgba(31,40,55,0.08)",
+    boxShadow: isMobile ? "none" : "0 10px 24px rgba(31,40,55,0.05)",
+    position: isMobile ? "static" : "sticky",
+    top: 18,
+    alignSelf: isMobile ? "auto" : "start",
+    maxHeight: isMobile ? "none" : "calc(100vh - 36px)",
+    overflow: "auto",
     order: isMobile ? 1 : 0,
   }),
   center: {
     display: "grid",
     gap: 16,
+    alignContent: "start",
   },
   rightbar: (isMobile: boolean): React.CSSProperties => ({
-    background: "#fdfdfc",
+    background: "rgba(253,253,252,0.94)",
     borderRadius: 20,
     padding: 16,
     border: "1px solid rgba(31,40,55,0.08)",
+    boxShadow: isMobile ? "none" : "0 10px 24px rgba(31,40,55,0.05)",
+    position: isMobile ? "static" : "sticky",
+    top: 18,
+    alignSelf: isMobile ? "auto" : "start",
+    maxHeight: isMobile ? "none" : "calc(100vh - 36px)",
+    overflow: "auto",
     order: isMobile ? 2 : 0,
   }),
+  workspaceStrip: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap" as const,
+  },
+  workspaceChip: {
+    display: "inline-block",
+    padding: "8px 12px",
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.82)",
+    border: "1px solid rgba(31,40,55,0.08)",
+    color: "#324052",
+    fontSize: 13,
+  },
+  panelSection: {
+    display: "grid",
+    gap: 2,
+    marginBottom: 10,
+  },
+  sectionEyebrow: {
+    margin: 0,
+    fontSize: 11,
+    letterSpacing: "0.12em",
+    textTransform: "uppercase" as const,
+    color: "#6e766f",
+  },
   sectionTitle: {
     marginTop: 0,
+    marginBottom: 12,
+    fontSize: 18,
     color: "#1d2433",
   },
+  subsectionTitle: {
+    margin: 0,
+    color: "#1d2433",
+    fontSize: 16,
+  },
+  panelGroup: {
+    marginTop: 18,
+    paddingTop: 16,
+    borderTop: "1px solid rgba(31,40,55,0.08)",
+  },
+  navRow: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap" as const,
+    marginBottom: 14,
+  },
+  navLink: {
+    display: "inline-block",
+    padding: "7px 11px",
+    borderRadius: 999,
+    textDecoration: "none",
+    background: "#eef5f0",
+    color: "#1f4b3f",
+    border: "1px solid rgba(31,75,63,0.12)",
+    fontWeight: 700,
+    fontSize: 13,
+  },
   helpCard: {
-    marginTop: 20,
+    marginTop: 18,
     padding: 14,
     borderRadius: 16,
     background: "#e7efe8",

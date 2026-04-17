@@ -1,15 +1,23 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { readMeetingReports } from "./meeting-reports";
 
 export type DocumentEntry = {
   id: string;
   title: string;
-  category: "prompt" | "architecture" | "data" | "prototype" | "registry" | "governance";
+  category:
+    | "prompt"
+    | "architecture"
+    | "data"
+    | "prototype"
+    | "registry"
+    | "governance"
+    | "meeting";
   description: string;
-  filePath: string;
+  filePath?: string;
 };
 
-export const documents: DocumentEntry[] = [
+export const staticDocuments: DocumentEntry[] = [
   {
     id: "pack-prompts",
     title: "Pack prompts finaux maitre",
@@ -96,14 +104,35 @@ export const documents: DocumentEntry[] = [
   },
 ];
 
-export function findDocumentById(id: string) {
-  return documents.find((document) => document.id === id);
+export async function getDocuments() {
+  const meetingReports = await readMeetingReports();
+  const meetingDocuments: DocumentEntry[] = meetingReports.map((report) => ({
+    id: report.id,
+    title: report.title,
+    category: "meeting",
+    description: report.description,
+  }));
+
+  return [...meetingDocuments, ...staticDocuments];
 }
 
 export async function readDocumentContent(id: string) {
-  const document = findDocumentById(id);
+  const meetingReports = await readMeetingReports();
+  const meetingReport = meetingReports.find((report) => report.id === id);
 
-  if (!document) {
+  if (meetingReport) {
+    return {
+      id: meetingReport.id,
+      title: meetingReport.title,
+      category: "meeting" as const,
+      description: meetingReport.description,
+      content: meetingReport.content,
+    };
+  }
+
+  const document = staticDocuments.find((entry) => entry.id === id);
+
+  if (!document || !document.filePath) {
     throw new Error("Document introuvable.");
   }
 

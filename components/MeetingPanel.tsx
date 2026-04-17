@@ -1,5 +1,6 @@
 import { parseModelResponse } from "../lib/response-parser";
 import type { AgentMeetingResponse } from "../lib/types";
+import Link from "next/link";
 
 type MeetingPanelProps = {
   meeting: AgentMeetingResponse | null;
@@ -22,6 +23,14 @@ export function MeetingPanel({ meeting, isLoading }: MeetingPanelProps) {
           <p style={styles.metaLine}>
             <strong>Ordre du jour :</strong> {meeting.agenda}
           </p>
+          <div style={styles.actions}>
+            <Link href="/history" style={styles.linkButton}>
+              Voir l&apos;historique
+            </Link>
+            <Link href="/documents" style={styles.linkButton}>
+              Voir le centre documentaire
+            </Link>
+          </div>
         </div>
       ) : null}
       {isLoading && !meeting ? <p style={styles.meta}>Tour de table en cours...</p> : null}
@@ -123,6 +132,22 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#324052",
     lineHeight: 1.5,
     fontSize: 14,
+  },
+  actions: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+    marginTop: 10,
+  },
+  linkButton: {
+    display: "inline-block",
+    padding: "8px 12px",
+    borderRadius: 999,
+    textDecoration: "none",
+    background: "#fff",
+    color: "#1d2433",
+    border: "1px solid rgba(31,40,55,0.12)",
+    fontWeight: 700,
   },
   stack: {
     display: "grid",

@@ -1,10 +1,23 @@
 html, body {
   margin: 0;
   padding: 0;
+  background: #eef1ea;
 }
 
 body {
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Segoe UI", "Aptos", Tahoma, sans-serif;
+  color: #1d2433;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+textarea,
+input,
+select {
+  font: inherit;
 }
 
 * {

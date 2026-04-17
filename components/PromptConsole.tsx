@@ -35,8 +35,13 @@ export function PromptConsole({
 }: PromptConsoleProps) {
   return (
     <section style={styles.card}>
-      <h2 style={styles.title}>Demande</h2>
-      <p style={styles.meta}>Agent selectionne : {selectedAgentLabel}</p>
+      <div style={styles.header}>
+        <div>
+          <h2 style={styles.title}>Demande</h2>
+          <p style={styles.meta}>Agent selectionne : {selectedAgentLabel}</p>
+        </div>
+        <span style={styles.keyboardHint}>Ctrl + Entree pour envoyer</span>
+      </div>
       <textarea
         style={styles.textarea}
         value={value}
@@ -102,29 +107,49 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 16,
     border: "1px solid rgba(31,40,55,0.08)",
   },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "baseline",
+    gap: 12,
+    marginBottom: 12,
+  },
   title: {
-    marginTop: 0,
+    margin: 0,
+    fontSize: 18,
     color: "#1d2433",
   },
   meta: {
-    marginTop: -4,
+    margin: "6px 0 0",
     color: "#6a6f79",
     fontSize: 14,
   },
+  keyboardHint: {
+    display: "inline-block",
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: "#f2f4ef",
+    border: "1px solid rgba(31,40,55,0.08)",
+    color: "#5f6a62",
+    fontSize: 12,
+    whiteSpace: "nowrap" as const,
+  },
   textarea: {
     width: "100%",
-    minHeight: 220,
+    minHeight: 240,
     resize: "vertical",
     borderRadius: 16,
     border: "1px solid rgba(31,40,55,0.12)",
     padding: 14,
     font: "inherit",
+    background: "#fcfbf8",
   },
   actions: {
     display: "flex",
     gap: 12,
     marginTop: 14,
     alignItems: "center",
+    flexWrap: "wrap" as const,
   },
   webToggle: {
     display: "grid",
@@ -145,9 +170,10 @@ const styles: Record<string, React.CSSProperties> = {
     border: 0,
     borderRadius: 999,
     padding: "12px 18px",
-    background: "#234b63",
+    background: "#1f4b3f",
     color: "#fff",
     cursor: "pointer",
+    fontWeight: 700,
   },
   secondaryButton: {
     border: "1px solid rgba(31,40,55,0.12)",
@@ -156,9 +182,12 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#fff",
     color: "#1d2433",
     cursor: "pointer",
+    fontWeight: 700,
   },
   hint: {
     color: "#6a6f79",
     fontSize: 13,
+    lineHeight: 1.5,
+    maxWidth: 420,
   },
 };

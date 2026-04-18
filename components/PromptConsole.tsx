@@ -8,12 +8,17 @@ type PromptConsoleProps = {
   selectedAgentLabel: string;
   placeholder: string;
   canForwardToEkt: boolean;
+  canRelayToAgent: boolean;
   meetingCount: number;
   canUseWeb: boolean;
   useWeb: boolean;
   onUseWebChange: (value: boolean) => void;
   webNote: string;
   ektActionLabel?: string;
+  relayTargetAgentId?: string;
+  relayOptions: Array<{ id: string; label: string }>;
+  onRelayTargetChange: (agentId: string) => void;
+  onRelayToAgent: () => void;
 };
 
 export function PromptConsole({
@@ -26,12 +31,17 @@ export function PromptConsole({
   selectedAgentLabel,
   placeholder,
   canForwardToEkt,
+  canRelayToAgent,
   meetingCount,
   canUseWeb,
   useWeb,
   onUseWebChange,
   webNote,
   ektActionLabel,
+  relayTargetAgentId,
+  relayOptions,
+  onRelayTargetChange,
+  onRelayToAgent,
 }: PromptConsoleProps) {
   return (
     <section style={styles.card}>
@@ -88,6 +98,28 @@ export function PromptConsole({
         >
           Lancer la reunion IA
         </button>
+        <div style={styles.relayGroup}>
+          <select
+            value={relayTargetAgentId}
+            onChange={(event) => onRelayTargetChange(event.target.value)}
+            disabled={!canRelayToAgent || isLoading || relayOptions.length === 0}
+            style={styles.relaySelect}
+          >
+            {relayOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <button
+            style={styles.secondaryButton}
+            type="button"
+            onClick={onRelayToAgent}
+            disabled={!canRelayToAgent || isLoading || relayOptions.length === 0}
+          >
+            Envoyer a un autre agent
+          </button>
+        </div>
         <span style={styles.hint}>
           {canForwardToEkt
             ? "La derniere reponse agent sera transmise a EKT pour lecture transverse."
@@ -189,5 +221,20 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 13,
     lineHeight: 1.5,
     maxWidth: 420,
+  },
+  relayGroup: {
+    display: "flex",
+    gap: 8,
+    alignItems: "center",
+    flexWrap: "wrap" as const,
+  },
+  relaySelect: {
+    minWidth: 180,
+    borderRadius: 999,
+    border: "1px solid rgba(31,40,55,0.12)",
+    background: "#fff",
+    color: "#1d2433",
+    padding: "11px 14px",
+    font: "inherit",
   },
 };

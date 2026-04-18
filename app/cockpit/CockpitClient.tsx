@@ -55,8 +55,12 @@ export function CockpitClient() {
     "1. Etat de la situation\n2. Points critiques\n3. Arbitrages\n4. Actions de la semaine"
   );
   const [meetingResponse, setMeetingResponse] = useState<AgentMeetingResponse | null>(null);
+  const [relayTargetAgentId, setRelayTargetAgentId] = useState<AgentId>("vie");
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId) ?? agents[0];
   const selectedWebRule = getWebAccessRule(selectedAgentId);
+  const relayOptions = agents.filter(
+    (agent) => agent.id !== (response?.agentId ?? selectedAgentId) && agent.id !== "ekt"
+  );
 
   const placeholders: Record<AgentId, string> = {
     ekt: "Exemple : Donne-moi une lecture de la semaine sur les risques de circulation PMR et les tensions chantier.",
@@ -121,6 +125,16 @@ export function CockpitClient() {
       setUseWeb(false);
     }
   }, [selectedAgentId]);
+
+  useEffect(() => {
+    if (relayOptions.length === 0) {
+      return;
+    }
+
+    if (!relayOptions.some((agent) => agent.id === relayTargetAgentId)) {
+      setRelayTargetAgentId(relayOptions[0].id);
+    }
+  }, [relayOptions, relayTargetAgentId]);
 
   function toggleMeetingAgent(agentId: AgentId) {
     setMeetingAgentIds((current) =>
@@ -274,6 +288,63 @@ export function CockpitClient() {
     }
   }
 
+  async function handleRelayToAgent() {
+    if (!response) {
+      return;
+    }
+
+    const relayTarget = relayOptions.find((agent) => agent.id === relayTargetAgentId);
+
+    if (!relayTarget) {
+      return;
+    }
+
+    setSourceResponse(response);
+    setSelectedAgentId(relayTarget.id);
+    setIsLoading(true);
+    setError(null);
+
+    const forwardedContext = [
+      "Contexte de travail inter-agents.",
+      `Agent source : ${response.agentId.toUpperCase()}`,
+      `Agent destinataire : ${relayTarget.label}`,
+      "",
+      "RAPPORT SOURCE",
+      response.message,
+      "",
+      "CONTEXTE INITIAL",
+      context,
+    ].join("\n");
+
+    const relayPrompt = `Lis le rapport de ${response.agentId.toUpperCase()} et reponds dans ton propre langage metier. N'imite pas le style de l'agent source. Dis ce que cela change pour ton domaine, ton risque specifique, la donnee minimale manquante et l'effet sur decision.`;
+
+    try {
+      const result = await fetch("/api/agents/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          agentId: relayTarget.id,
+          context: forwardedContext,
+          userPrompt: relayPrompt,
+          evaluateEktSolo: false,
+        }),
+      });
+
+      if (!result.ok) {
+        throw new Error("La transmission inter-agents a echoue.");
+      }
+
+      const data = (await result.json()) as ApiResponse;
+      setResponse(data);
+    } catch (relayError) {
+      setError(relayError instanceof Error ? relayError.message : "Erreur inconnue.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <main style={styles.page(isMobile)}>
       <header style={styles.workspaceHeader(isMobile)}>
@@ -379,6 +450,7 @@ export function CockpitClient() {
           selectedAgentLabel={selectedAgent.label}
           placeholder={placeholders[selectedAgentId]}
           canForwardToEkt={!!response && response.agentId !== "ekt"}
+          canRelayToAgent={!!response && relayOptions.length > 0}
           meetingCount={meetingAgentIds.length}
           canUseWeb={canAgentUseWeb(selectedAgentId)}
           useWeb={useWeb}
@@ -389,6 +461,10 @@ export function CockpitClient() {
               ? "Arbitrage EKT"
               : "Envoyer a EKT"
           }
+          relayTargetAgentId={relayTargetAgentId}
+          relayOptions={relayOptions.map((agent) => ({ id: agent.id, label: agent.label }))}
+          onRelayTargetChange={(agentId) => setRelayTargetAgentId(agentId as AgentId)}
+          onRelayToAgent={handleRelayToAgent}
         />
         <MeetingPanel meeting={meetingResponse} isLoading={isLoading && !response} />
         <WorkingMemoryPanel

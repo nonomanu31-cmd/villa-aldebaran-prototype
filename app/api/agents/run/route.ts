@@ -3,6 +3,7 @@ import { runAgentModel } from "../../../../lib/openai";
 import { runProviderCouncil } from "../../../../lib/provider-council";
 import { appendHistory } from "../../../../lib/storage";
 import type { AgentRunRequest } from "../../../../lib/types";
+import { buildEktContext } from "../../../../lib/ekt-context";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as AgentRunRequest;
@@ -31,9 +32,12 @@ export async function POST(request: Request) {
       });
     }
 
+    const enrichedContext =
+      body.agentId === "ekt" ? await buildEktContext(body.context) : body.context;
+
     const result = await runAgentModel({
       agentId: body.agentId,
-      context: body.context,
+      context: enrichedContext,
       userPrompt: body.userPrompt,
       useWeb: body.useWeb,
     });
@@ -47,13 +51,13 @@ export async function POST(request: Request) {
       });
     }
 
-    await appendHistory({
-      id: crypto.randomUUID(),
-      agentId: result.agent.id,
-      context: body.context,
-      userPrompt: body.userPrompt,
-      response: result.message,
-      createdAt: new Date().toISOString(),
+      await appendHistory({
+        id: crypto.randomUUID(),
+        agentId: result.agent.id,
+        context: enrichedContext,
+        userPrompt: body.userPrompt,
+        response: result.message,
+        createdAt: new Date().toISOString(),
     });
 
     return NextResponse.json({

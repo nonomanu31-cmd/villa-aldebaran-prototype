@@ -32,6 +32,12 @@ export async function POST(request: Request) {
       message: string;
       promptPreview: string;
     }> = [];
+    const contradictions: Array<{
+      agentId: AgentId;
+      label: string;
+      message: string;
+      promptPreview: string;
+    }> = [];
 
     for (const agentId of participantIds) {
       const agent = findAgentById(agentId);
@@ -79,10 +85,69 @@ export async function POST(request: Request) {
           moderatorId,
           agenda,
           transcript,
+          contradictions,
           synthesis: null,
           minutes: null,
         });
       }
+    }
+
+    for (const agentId of participantIds) {
+      const agent = findAgentById(agentId);
+
+      if (!agent) {
+        continue;
+      }
+
+      const contradictionContext = [
+        "REUNION MULTI-AGENTS - TOUR CONTRADICTOIRE",
+        `MODERATEUR : ${moderatorId.toUpperCase()}`,
+        "",
+        "CONTEXTE INITIAL",
+        body.context,
+        "",
+        "ORDRE DU JOUR",
+        agenda,
+        "",
+        "DEMANDE DE REUNION",
+        body.userPrompt,
+        "",
+        "PREMIER TOUR",
+        ...transcript.flatMap((entry) => [
+          `AGENT ${entry.label.toUpperCase()}`,
+          entry.message,
+          "",
+        ]),
+      ].join("\n");
+
+      const contradictionResult = await runAgentModel({
+        agentId,
+        context: contradictionContext,
+        userPrompt: [
+          "TOUR 2 - ATTAQUE CROISEE",
+          "Ne parle pas en EKT.",
+          "Fais seulement deux choses :",
+          "1. dis quel point d'un autre agent te parait fragile, incomplet ou surconditionne ;",
+          "2. dis quel angle mort le collectif sous-estime selon toi.",
+          "Reste court, utile et contradictoire sans theatre.",
+        ].join("\n"),
+      });
+
+      contradictions.push({
+        agentId,
+        label: agent.label,
+        message: contradictionResult.message,
+        promptPreview: contradictionResult.promptPreview,
+      });
+
+      await appendHistory({
+        id: crypto.randomUUID(),
+        agentId,
+        context: contradictionContext,
+        userPrompt: "[Reunion IA] Tour contradictoire",
+        response: contradictionResult.message,
+        createdAt: new Date().toISOString(),
+      });
     }
 
     let synthesis: {
@@ -108,6 +173,12 @@ export async function POST(request: Request) {
         "",
         "TOUR DE TABLE",
         ...transcript.flatMap((entry) => [
+          `AGENT ${entry.label.toUpperCase()}`,
+          entry.message,
+          "",
+        ]),
+        "TOUR CONTRADICTOIRE",
+        ...contradictions.flatMap((entry) => [
           `AGENT ${entry.label.toUpperCase()}`,
           entry.message,
           "",
@@ -167,6 +238,12 @@ export async function POST(request: Request) {
           entry.message,
           "",
         ]),
+        "TOUR CONTRADICTOIRE",
+        ...contradictions.flatMap((entry) => [
+          `AGENT ${entry.label.toUpperCase()}`,
+          entry.message,
+          "",
+        ]),
         ...(synthesis ? ["SYNTHESE MODERATEUR", synthesis.message, ""] : []),
       ].join("\n");
 
@@ -199,6 +276,7 @@ export async function POST(request: Request) {
       moderatorId,
       agenda,
       transcript,
+      contradictions,
       synthesis,
       minutes,
     };

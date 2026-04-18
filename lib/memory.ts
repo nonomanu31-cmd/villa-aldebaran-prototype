@@ -1,6 +1,13 @@
 import { readPersistedJson, resolveDataFile, writePersistedJson } from "./persistence";
 
-export type MemoryItemType = "decision" | "alert" | "openQuestion";
+export type MemoryItemType =
+  | "decision"
+  | "alert"
+  | "openQuestion"
+  | "uncertaintyMinor"
+  | "uncertaintyStructuring"
+  | "uncertaintyCritical"
+  | "uncertaintyCategoryShift";
 
 export type MemoryItem = {
   id: string;
@@ -10,11 +17,22 @@ export type MemoryItem = {
   createdAt: string;
 };
 
+export type UncertaintyLevel =
+  | "mineure"
+  | "structurante"
+  | "critique"
+  | "change-categorie";
+
+export type UncertaintyItem = MemoryItem & {
+  level: UncertaintyLevel;
+};
+
 export type WorkingMemory = {
   activeContext: string;
   decisions: MemoryItem[];
   alerts: MemoryItem[];
   openQuestions: MemoryItem[];
+  uncertainties: UncertaintyItem[];
 };
 
 const memoryPath = resolveDataFile("working-memory.json");
@@ -25,6 +43,7 @@ const emptyMemory: WorkingMemory = {
   decisions: [],
   alerts: [],
   openQuestions: [],
+  uncertainties: [],
 };
 
 export async function readWorkingMemory(): Promise<WorkingMemory> {
@@ -58,6 +77,34 @@ export async function appendMemoryItem(
 
   if (type === "openQuestion") {
     memory.openQuestions.unshift(item);
+  }
+
+  if (type === "uncertaintyMinor") {
+    memory.uncertainties.unshift({
+      ...item,
+      level: "mineure",
+    });
+  }
+
+  if (type === "uncertaintyStructuring") {
+    memory.uncertainties.unshift({
+      ...item,
+      level: "structurante",
+    });
+  }
+
+  if (type === "uncertaintyCritical") {
+    memory.uncertainties.unshift({
+      ...item,
+      level: "critique",
+    });
+  }
+
+  if (type === "uncertaintyCategoryShift") {
+    memory.uncertainties.unshift({
+      ...item,
+      level: "change-categorie",
+    });
   }
 
   await writeWorkingMemory(memory);

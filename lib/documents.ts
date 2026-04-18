@@ -40,6 +40,13 @@ export const staticDocuments: DocumentEntry[] = [
     filePath: path.join(process.cwd(), "..", "SCHEMA_DONNEES_SYSTEME.md"),
   },
   {
+    id: "prompt-maitre-systeme-v2",
+    title: "Prompt maitre systeme V2",
+    category: "architecture",
+    description: "Cadre des deux regimes, matrice commune, non-redondance utile et lecture EKT V3.",
+    filePath: path.join(process.cwd(), "..", "PROMPT_MAITRE_SYSTEME_V2.md"),
+  },
+  {
     id: "registre-textes",
     title: "Registre initial des textes opposables",
     category: "registry",

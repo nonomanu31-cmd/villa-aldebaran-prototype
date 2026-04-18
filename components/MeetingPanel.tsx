@@ -61,6 +61,36 @@ export function MeetingPanel({ meeting, isLoading }: MeetingPanelProps) {
             );
           })}
 
+          {meeting.contradictions?.length ? (
+            <article style={styles.contradictionBlock}>
+              <h3 style={styles.agentTitle}>Tour contradictoire</h3>
+              <div style={styles.sectionStack}>
+                {meeting.contradictions.map((entry) => {
+                  const parsed = parseModelResponse(entry.message);
+                  return (
+                    <section key={`contradiction-${entry.agentId}`} style={styles.section}>
+                      <h4 style={styles.sectionTitle}>{entry.label}</h4>
+                      {parsed.sections.flatMap((section, sectionIndex) => [
+                        <p key={`${entry.agentId}-${sectionIndex}-title`} style={styles.sectionLead}>
+                          {section.title}
+                        </p>,
+                        ...section.body.map((line, lineIndex) =>
+                          line ? (
+                            <p key={`${entry.agentId}-${sectionIndex}-${lineIndex}`} style={styles.line}>
+                              {line}
+                            </p>
+                          ) : (
+                            <div key={`${entry.agentId}-${sectionIndex}-${lineIndex}`} style={{ height: 6 }} />
+                          )
+                        ),
+                      ])}
+                    </section>
+                  );
+                })}
+              </div>
+            </article>
+          ) : null}
+
           {meeting.synthesis ? (
             <article style={styles.synthesisBlock}>
               <h3 style={styles.agentTitle}>Synthese moderateur - {meeting.synthesis.label}</h3>
@@ -165,6 +195,12 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#eef5f0",
     border: "1px solid rgba(31,75,63,0.18)",
   },
+  contradictionBlock: {
+    borderRadius: 16,
+    padding: 14,
+    background: "#f4eef8",
+    border: "1px solid rgba(99,82,148,0.18)",
+  },
   minutesBlock: {
     borderRadius: 16,
     padding: 14,
@@ -187,6 +223,12 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     color: "#234b63",
     fontSize: 14,
+  },
+  sectionLead: {
+    margin: "2px 0 0",
+    color: "#5d4b7d",
+    fontSize: 13,
+    fontWeight: 700,
   },
   line: {
     margin: 0,

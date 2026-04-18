@@ -44,4 +44,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ error: "Action memoire inconnue." }, { status: 400 });
 }
-

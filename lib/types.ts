@@ -42,6 +42,7 @@ export type AgentMeetingResponse = {
   moderatorId: AgentId;
   agenda: string;
   transcript: MeetingParticipantResponse[];
+  contradictions: MeetingParticipantResponse[];
   synthesis: MeetingParticipantResponse | null;
   minutes: MeetingParticipantResponse | null;
 };

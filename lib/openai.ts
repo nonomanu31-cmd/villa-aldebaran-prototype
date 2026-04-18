@@ -1,7 +1,7 @@
 import { findAgentById } from "./agents";
 import { loadPrompt } from "./prompt-loader";
 import { canAgentUseWeb, getWebAccessRule } from "./web-access";
-import type { AgentId, WebSource } from "./types";
+import type { AgentId, EktEvaluation, WebSource } from "./types";
 
 type OpenAIResponsesApiPayload = {
   error?: { message?: string };
@@ -173,4 +173,114 @@ export async function runAgentModel(params: {
     missingApiKey: false,
     sources: extractSources(payload),
   };
+}
+
+function extractJsonBlock(raw: string) {
+  const fencedMatch = raw.match(/```json\s*([\s\S]*?)```/i);
+
+  if (fencedMatch?.[1]) {
+    return fencedMatch[1].trim();
+  }
+
+  const firstBrace = raw.indexOf("{");
+  const lastBrace = raw.lastIndexOf("}");
+
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    return raw.slice(firstBrace, lastBrace + 1);
+  }
+
+  return raw.trim();
+}
+
+export async function evaluateEktSoloResponse(params: {
+  context: string;
+  userPrompt: string;
+  response: string;
+}) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const model = process.env.OPENAI_MODEL || "gpt-5.2";
+
+  if (!apiKey) {
+    return null;
+  }
+
+  const evaluationPrompt = [
+    "Tu evalues une reponse EKT solo en contexte pauvre ou semi-pauvre.",
+    "Tu ne reecris pas la reponse. Tu la notes selon une grille stricte.",
+    "Retourne UNIQUEMENT un JSON valide.",
+    "",
+    "Criteres obligatoires notes de 0 a 4 :",
+    "1. Ancrage au fait declencheur",
+    "2. Discipline epistemique",
+    "3. Justesse du niveau d'alarme",
+    "4. Valeur de structuration",
+    "5. Valeur decisionnelle",
+    "6. Qualite des donnees manquantes",
+    "7. Sobriete analytique",
+    "8. Coherence interne",
+    "9. Robustesse au contexte pauvre",
+    "10. Pertinence terminale",
+    "",
+    "Format JSON attendu :",
+    '{',
+    '  "totalScore": 0,',
+    '  "summary": "resume court",',
+    '  "criteria": [',
+    '    { "label": "Ancrage au fait declencheur", "score": 0, "observation": "..." }',
+    "  ]",
+    "}",
+    "",
+    "Regles :",
+    "- totalScore = somme des 10 notes sur 40 ;",
+    "- exactement 10 elements dans criteria ;",
+    "- observations courtes, concretes, sans emphase ;",
+    "- note severe si la reponse surinterprète, dramatise, ou reste decorative ;",
+    "- evalue la reponse telle qu'elle est, pas ce qu'elle aurait pu etre ;",
+    "- n'ajoute aucun texte hors JSON.",
+    "",
+    "CONTEXTE FOURNI",
+    params.context || "[aucun contexte fourni]",
+    "",
+    "DEMANDE UTILISATEUR",
+    params.userPrompt,
+    "",
+    "REPONSE EKT A EVALUER",
+    params.response,
+  ].join("\n");
+
+  const openAiResponse = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      input: evaluationPrompt,
+    }),
+  });
+
+  const payload = (await openAiResponse.json()) as OpenAIResponsesApiPayload;
+
+  if (!openAiResponse.ok) {
+    throw new Error(payload.error?.message || "erreur inconnue.");
+  }
+
+  const raw = extractOutputText(payload);
+
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(extractJsonBlock(raw)) as EktEvaluation;
+
+    if (!Array.isArray(parsed.criteria) || parsed.criteria.length !== 10) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
 }

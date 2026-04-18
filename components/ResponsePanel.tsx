@@ -1,4 +1,5 @@
 import { parseModelResponse } from "../lib/response-parser";
+import type { EktEvaluation } from "../lib/types";
 
 type ResponsePanelProps = {
   selectedAgentId: string;
@@ -6,6 +7,7 @@ type ResponsePanelProps = {
     agentId: string;
     message: string;
     promptPreview: string;
+    evaluation?: EktEvaluation | null;
     sources?: Array<{
       url: string;
       title?: string;
@@ -15,6 +17,7 @@ type ResponsePanelProps = {
     agentId: string;
     message: string;
     promptPreview: string;
+    evaluation?: EktEvaluation | null;
     sources?: Array<{
       url: string;
       title?: string;
@@ -33,6 +36,7 @@ export function ResponsePanel({
 }: ResponsePanelProps) {
   const showDebug = !!response?.promptPreview;
   const parsed = response ? parseModelResponse(response.message) : null;
+  const evaluation = response?.evaluation ?? null;
   const parsedSource =
     sourceResponse && sourceResponse.agentId !== response?.agentId
       ? parseModelResponse(sourceResponse.message)
@@ -104,6 +108,26 @@ export function ResponsePanel({
                 </li>
               ))}
             </ul>
+          </section>
+        ) : null}
+        {evaluation ? (
+          <section style={styles.evaluationSection}>
+            <div style={styles.evaluationHeader}>
+              <h3 style={styles.evaluationTitle}>Evaluation EKT solo</h3>
+              <span style={styles.scorePill}>{evaluation.totalScore}/40</span>
+            </div>
+            <p style={styles.evaluationSummary}>{evaluation.summary}</p>
+            <div style={styles.evaluationGrid}>
+              {evaluation.criteria.map((criterion) => (
+                <article key={criterion.label} style={styles.evaluationCard}>
+                  <div style={styles.evaluationRow}>
+                    <strong style={styles.evaluationLabel}>{criterion.label}</strong>
+                    <span style={styles.criterionScore}>{criterion.score}/4</span>
+                  </div>
+                  <p style={styles.evaluationObservation}>{criterion.observation}</p>
+                </article>
+              ))}
+            </div>
           </section>
         ) : null}
         {parsedSource ? (
@@ -280,5 +304,71 @@ const styles: Record<string, React.CSSProperties> = {
     margin: "0 0 10px",
     color: "#70542d",
     fontSize: 15,
+  },
+  evaluationSection: {
+    marginTop: 16,
+    paddingTop: 12,
+    borderTop: "1px solid rgba(31,40,55,0.08)",
+  },
+  evaluationHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 10,
+  },
+  evaluationTitle: {
+    margin: 0,
+    color: "#1d2433",
+    fontSize: 15,
+  },
+  scorePill: {
+    display: "inline-block",
+    padding: "7px 10px",
+    borderRadius: 999,
+    background: "#f2efe4",
+    border: "1px solid rgba(112,84,45,0.14)",
+    color: "#70542d",
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  evaluationSummary: {
+    margin: "0 0 10px",
+    color: "#4a5568",
+    lineHeight: 1.55,
+    fontSize: 14,
+  },
+  evaluationGrid: {
+    display: "grid",
+    gap: 10,
+  },
+  evaluationCard: {
+    borderRadius: 14,
+    padding: 12,
+    background: "#fbfbfa",
+    border: "1px solid rgba(31,40,55,0.06)",
+  },
+  evaluationRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "start",
+    gap: 12,
+    marginBottom: 6,
+  },
+  evaluationLabel: {
+    color: "#18314a",
+    fontSize: 14,
+  },
+  criterionScore: {
+    color: "#1f4b3f",
+    fontSize: 13,
+    fontWeight: 700,
+    whiteSpace: "nowrap" as const,
+  },
+  evaluationObservation: {
+    margin: 0,
+    color: "#566072",
+    lineHeight: 1.55,
+    fontSize: 13,
   },
 };

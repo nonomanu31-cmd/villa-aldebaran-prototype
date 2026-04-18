@@ -22,6 +22,19 @@ export type AgentRunRequest = {
   context: string;
   userPrompt: string;
   useWeb?: boolean;
+  evaluateEktSolo?: boolean;
+};
+
+export type EktEvaluationCriterion = {
+  label: string;
+  score: number;
+  observation: string;
+};
+
+export type EktEvaluation = {
+  totalScore: number;
+  summary: string;
+  criteria: EktEvaluationCriterion[];
 };
 
 export type WebSource = {

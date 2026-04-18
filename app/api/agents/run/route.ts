@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runAgentModel } from "../../../../lib/openai";
+import { evaluateEktSoloResponse, runAgentModel } from "../../../../lib/openai";
 import { runProviderCouncil } from "../../../../lib/provider-council";
 import { appendHistory } from "../../../../lib/storage";
 import type { AgentRunRequest } from "../../../../lib/types";
@@ -29,6 +29,7 @@ export async function POST(request: Request) {
         promptPreview: councilResult.promptPreview,
         message: councilResult.message,
         sources: [],
+        evaluation: null,
       });
     }
 
@@ -42,12 +43,22 @@ export async function POST(request: Request) {
       useWeb: body.useWeb,
     });
 
+    const evaluation =
+      body.agentId === "ekt" && body.evaluateEktSolo
+        ? await evaluateEktSoloResponse({
+            context: enrichedContext,
+            userPrompt: body.userPrompt,
+            response: result.message,
+          })
+        : null;
+
     if (result.missingApiKey) {
       return NextResponse.json({
         agentId: result.agent.id,
         promptPreview: result.promptPreview,
         message: result.message,
         sources: result.sources,
+        evaluation,
       });
     }
 
@@ -65,6 +76,7 @@ export async function POST(request: Request) {
       promptPreview: result.promptPreview,
       message: result.message,
       sources: result.sources,
+      evaluation,
     });
   } catch (error) {
     return NextResponse.json(
@@ -75,6 +87,7 @@ export async function POST(request: Request) {
           error instanceof Error
             ? `Erreur reseau ou serveur : ${error.message}`
             : "Erreur reseau ou serveur inconnue.",
+        evaluation: null,
       },
       { status: 500 }
     );

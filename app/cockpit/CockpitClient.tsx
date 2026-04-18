@@ -15,12 +15,14 @@ import { agents } from "../../lib/agents";
 import type { AgentId } from "../../lib/types";
 import type { WorkingMemory } from "../../lib/memory";
 import type { AgentMeetingResponse } from "../../lib/types";
+import type { EktEvaluation } from "../../lib/types";
 import { canAgentUseWeb, getWebAccessRule } from "../../lib/web-access";
 
 type ApiResponse = {
   agentId: AgentId;
   message: string;
   promptPreview: string;
+  evaluation?: EktEvaluation | null;
   sources?: Array<{
     url: string;
     title?: string;
@@ -144,6 +146,7 @@ export function CockpitClient() {
           context,
           userPrompt,
           useWeb,
+          evaluateEktSolo: targetAgentId === "ekt",
         }),
       });
 
@@ -204,6 +207,7 @@ export function CockpitClient() {
           agentId: "ekt",
           context: forwardedContext,
           userPrompt: ektDecisionPrompt,
+          evaluateEktSolo: false,
         }),
       });
 

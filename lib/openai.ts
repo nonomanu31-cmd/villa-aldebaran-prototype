@@ -1,7 +1,7 @@
 import { findAgentById } from "./agents";
 import { loadPrompt } from "./prompt-loader";
 import { canAgentUseWeb, getWebAccessRule } from "./web-access";
-import type { AgentId, EktEvaluation, WebSource } from "./types";
+import type { AgentId, EktEvaluation, MeetingAgentCallRequest, WebSource } from "./types";
 
 type OpenAIResponsesApiPayload = {
   error?: { message?: string };
@@ -282,5 +282,112 @@ export async function evaluateEktSoloResponse(params: {
     return parsed;
   } catch {
     return null;
+  }
+}
+
+export async function extractMeetingAgentCalls(params: {
+  context: string;
+  agenda: string;
+  userPrompt: string;
+  transcript: Array<{ agentId: AgentId; label: string; message: string }>;
+  contradictions: Array<{ agentId: AgentId; label: string; message: string }>;
+  synthesis?: string | null;
+}) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  const model = process.env.OPENAI_MODEL || "gpt-5.2";
+
+  if (!apiKey) {
+    return [] as MeetingAgentCallRequest[];
+  }
+
+  const extractionPrompt = [
+    "Tu lis une reunion multi-agents Villa Aldebaran.",
+    "Ton role est uniquement d'identifier s'il faut appeler explicitement un autre agent apres la reunion.",
+    "Retourne UNIQUEMENT un JSON valide.",
+    "",
+    "Regles :",
+    "- propose 0 a 3 appels maximum ;",
+    "- un appel seulement si le collectif estime implicitement qu'un agent specifique doit maintenant etre saisi ;",
+    "- pas d'appel vers un agent deja central si ce n'est pas utile ;",
+    "- raison courte, concrete, orientee action ;",
+    "- n'invente pas des besoins faibles ;",
+    "- si aucun appel n'est necessaire, retourne {\"calls\":[]}.",
+    "",
+    "Format JSON :",
+    '{ "calls": [ { "targetAgentId": "juridique", "reason": "..." } ] }',
+    "",
+    "Agents disponibles : ekt, vie, juridique, chantier, exploitation, finances, ecologie, enosirai, administratif, conseil3ia",
+    "",
+    "CONTEXTE",
+    params.context,
+    "",
+    "ORDRE DU JOUR",
+    params.agenda,
+    "",
+    "DEMANDE",
+    params.userPrompt,
+    "",
+    "TOUR DE TABLE",
+    ...params.transcript.flatMap((entry) => [
+      `AGENT ${entry.label.toUpperCase()}`,
+      entry.message,
+      "",
+    ]),
+    "TOUR CONTRADICTOIRE",
+    ...params.contradictions.flatMap((entry) => [
+      `AGENT ${entry.label.toUpperCase()}`,
+      entry.message,
+      "",
+    ]),
+    ...(params.synthesis ? ["SYNTHESE", params.synthesis, ""] : []),
+  ].join("\n");
+
+  const openAiResponse = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      input: extractionPrompt,
+    }),
+  });
+
+  const payload = (await openAiResponse.json()) as OpenAIResponsesApiPayload;
+
+  if (!openAiResponse.ok) {
+    throw new Error(payload.error?.message || "erreur inconnue.");
+  }
+
+  const raw = extractOutputText(payload);
+
+  if (!raw) {
+    return [] as MeetingAgentCallRequest[];
+  }
+
+  try {
+    const parsed = JSON.parse(extractJsonBlock(raw)) as {
+      calls?: Array<{ targetAgentId?: AgentId; reason?: string }>;
+    };
+
+    const calls = parsed.calls ?? [];
+
+    return calls
+      .filter((call) => call.targetAgentId && call.reason)
+      .map((call) => {
+        const targetAgentId = call.targetAgentId as AgentId;
+        const targetAgent = findAgentById(targetAgentId);
+
+        return {
+          targetAgentId,
+          targetLabel: targetAgent?.label || targetAgentId.toUpperCase(),
+          reason: call.reason?.trim() || "",
+        };
+      })
+      .filter((call) => Boolean(call.reason))
+      .slice(0, 3);
+  } catch {
+    return [] as MeetingAgentCallRequest[];
   }
 }

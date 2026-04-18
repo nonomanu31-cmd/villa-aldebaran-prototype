@@ -5,9 +5,10 @@ import Link from "next/link";
 type MeetingPanelProps = {
   meeting: AgentMeetingResponse | null;
   isLoading: boolean;
+  onCallRequestedAgent?: (agentId: string, reason: string) => void;
 };
 
-export function MeetingPanel({ meeting, isLoading }: MeetingPanelProps) {
+export function MeetingPanel({ meeting, isLoading, onCallRequestedAgent }: MeetingPanelProps) {
   if (!meeting && !isLoading) {
     return null;
   }
@@ -87,6 +88,33 @@ export function MeetingPanel({ meeting, isLoading }: MeetingPanelProps) {
                     </section>
                   );
                 })}
+              </div>
+            </article>
+          ) : null}
+
+          {meeting.requestedCalls?.length ? (
+            <article style={styles.requestBlock}>
+              <h3 style={styles.agentTitle}>Appels agents recommandes</h3>
+              <div style={styles.sectionStack}>
+                {meeting.requestedCalls.map((call, index) => (
+                  <section key={`${call.targetAgentId}-${index}`} style={styles.section}>
+                    <div style={styles.callRow}>
+                      <div>
+                        <h4 style={styles.sectionTitle}>{call.targetLabel}</h4>
+                        <p style={styles.line}>{call.reason}</p>
+                      </div>
+                      {onCallRequestedAgent ? (
+                        <button
+                          type="button"
+                          style={styles.callButton}
+                          onClick={() => onCallRequestedAgent(call.targetAgentId, call.reason)}
+                        >
+                          Appeler cet agent
+                        </button>
+                      ) : null}
+                    </div>
+                  </section>
+                ))}
               </div>
             </article>
           ) : null}
@@ -201,6 +229,12 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#f4eef8",
     border: "1px solid rgba(99,82,148,0.18)",
   },
+  requestBlock: {
+    borderRadius: 16,
+    padding: 14,
+    background: "#eef3fb",
+    border: "1px solid rgba(35,75,99,0.18)",
+  },
   minutesBlock: {
     borderRadius: 16,
     padding: 14,
@@ -235,5 +269,22 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#243042",
     lineHeight: 1.6,
     fontSize: 14,
+  },
+  callRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "start",
+    gap: 12,
+    flexWrap: "wrap" as const,
+  },
+  callButton: {
+    border: "1px solid rgba(31,40,55,0.12)",
+    borderRadius: 999,
+    padding: "10px 14px",
+    background: "#fff",
+    color: "#1d2433",
+    cursor: "pointer",
+    fontWeight: 700,
+    whiteSpace: "nowrap" as const,
   },
 };

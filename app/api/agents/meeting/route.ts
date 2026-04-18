@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { appendHistory } from "../../../../lib/storage";
 import { findAgentById } from "../../../../lib/agents";
-import { runAgentModel } from "../../../../lib/openai";
-import type { AgentId } from "../../../../lib/types";
+import { extractMeetingAgentCalls, runAgentModel } from "../../../../lib/openai";
+import type { AgentId, MeetingAgentCallRequest } from "../../../../lib/types";
 import { archiveMeetingReport } from "../../../../lib/meeting-reports";
 
 type MeetingRequest = {
@@ -88,6 +88,7 @@ export async function POST(request: Request) {
           contradictions,
           synthesis: null,
           minutes: null,
+          requestedCalls: [],
         });
       }
     }
@@ -271,6 +272,21 @@ export async function POST(request: Request) {
       });
     }
 
+    let requestedCalls: MeetingAgentCallRequest[] = [];
+
+    try {
+      requestedCalls = await extractMeetingAgentCalls({
+        context: body.context,
+        agenda,
+        userPrompt: body.userPrompt,
+        transcript,
+        contradictions,
+        synthesis: synthesis?.message ?? null,
+      });
+    } catch {
+      requestedCalls = [];
+    }
+
     const meetingResponse = {
       participantIds,
       moderatorId,
@@ -279,6 +295,7 @@ export async function POST(request: Request) {
       contradictions,
       synthesis,
       minutes,
+      requestedCalls,
     };
 
     const archivedReport = await archiveMeetingReport({

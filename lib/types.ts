@@ -50,6 +50,12 @@ export type MeetingParticipantResponse = {
   sources?: WebSource[];
 };
 
+export type MeetingAgentCallRequest = {
+  targetAgentId: AgentId;
+  targetLabel: string;
+  reason: string;
+};
+
 export type AgentMeetingResponse = {
   participantIds: AgentId[];
   moderatorId: AgentId;
@@ -58,6 +64,7 @@ export type AgentMeetingResponse = {
   contradictions: MeetingParticipantResponse[];
   synthesis: MeetingParticipantResponse | null;
   minutes: MeetingParticipantResponse | null;
+  requestedCalls: MeetingAgentCallRequest[];
 };
 
 export type AgentRunRecord = {

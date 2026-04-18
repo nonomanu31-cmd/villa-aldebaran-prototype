@@ -16,6 +16,7 @@ import type { AgentId } from "../../lib/types";
 import type { WorkingMemory } from "../../lib/memory";
 import type { AgentMeetingResponse } from "../../lib/types";
 import type { EktEvaluation } from "../../lib/types";
+import { parseModelResponse } from "../../lib/response-parser";
 import { canAgentUseWeb, getWebAccessRule } from "../../lib/web-access";
 
 type ApiResponse = {
@@ -28,6 +29,35 @@ type ApiResponse = {
     title?: string;
   }>;
 };
+
+function compactText(raw: string, maxLength = 7000) {
+  if (raw.length <= maxLength) {
+    return raw;
+  }
+
+  return `${raw.slice(0, maxLength)}\n\n[contenu tronque pour transmission inter-agents]`;
+}
+
+function buildStructuredRelaySource(sourceAgentId: AgentId, sourceMessage: string) {
+  const parsed = parseModelResponse(sourceMessage);
+  const selectedSections = parsed.sections.slice(0, 6).map((section) => {
+    const compactBody = section.body
+      .filter(Boolean)
+      .slice(0, 6)
+      .join("\n");
+
+    return [`## ${section.title}`, compactBody].filter(Boolean).join("\n");
+  });
+
+  const fallbackText = compactText(sourceMessage, 3500);
+
+  return [
+    `Agent source : ${sourceAgentId.toUpperCase()}`,
+    "",
+    "DOSSIER TRANSMIS",
+    ...(selectedSections.length > 0 ? selectedSections : [fallbackText]),
+  ].join("\n\n");
+}
 
 export function CockpitClient() {
   const [isMobile, setIsMobile] = useState(false);
@@ -304,19 +334,23 @@ export function CockpitClient() {
     setIsLoading(true);
     setError(null);
 
+    const relaySource = buildStructuredRelaySource(response.agentId, response.message);
     const forwardedContext = [
       "Contexte de travail inter-agents.",
       `Agent source : ${response.agentId.toUpperCase()}`,
       `Agent destinataire : ${relayTarget.label}`,
       "",
-      "RAPPORT SOURCE",
-      response.message,
-      "",
-      "CONTEXTE INITIAL",
+      "SITUATION ACTIVE",
       context,
+      "",
+      "DOSSIER SOURCE STRUCTURE",
+      relaySource,
     ].join("\n");
 
-    const relayPrompt = `Lis le rapport de ${response.agentId.toUpperCase()} et reponds dans ton propre langage metier. N'imite pas le style de l'agent source. Dis ce que cela change pour ton domaine, ton risque specifique, la donnee minimale manquante et l'effet sur decision.`;
+    const relayPrompt = `Lis le dossier transmis par ${response.agentId.toUpperCase()} et reponds dans ton propre langage metier. N'imite pas le style de l'agent source. Dis : 1. ce que cela change pour ton domaine 2. ton risque specifique 3. la donnee minimale manquante 4. l'effet sur decision 5. la prochaine action utile.`;
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 90000);
 
     try {
       const result = await fetch("/api/agents/run", {
@@ -324,6 +358,7 @@ export function CockpitClient() {
         headers: {
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
         body: JSON.stringify({
           agentId: relayTarget.id,
           context: forwardedContext,
@@ -339,7 +374,85 @@ export function CockpitClient() {
       const data = (await result.json()) as ApiResponse;
       setResponse(data);
     } catch (relayError) {
-      setError(relayError instanceof Error ? relayError.message : "Erreur inconnue.");
+      setError(
+        relayError instanceof Error && relayError.name === "AbortError"
+          ? "La transmission vers cet agent a pris trop de temps. Reessayez avec un contexte plus court."
+          : relayError instanceof Error
+            ? relayError.message
+            : "Erreur inconnue."
+      );
+    } finally {
+      window.clearTimeout(timeoutId);
+      setIsLoading(false);
+    }
+  }
+
+  async function handleCallRequestedAgent(agentId: string, reason: string) {
+    if (!meetingResponse) {
+      return;
+    }
+
+    const targetAgent = agents.find((agent) => agent.id === agentId);
+
+    if (!targetAgent) {
+      return;
+    }
+
+    setSelectedAgentId(targetAgent.id);
+    setIsLoading(true);
+    setError(null);
+
+    const meetingSource = meetingResponse.synthesis?.message
+      || meetingResponse.minutes?.message
+      || meetingResponse.transcript.map((entry) => `${entry.label}\n${entry.message}`).join("\n\n");
+
+    setSourceResponse({
+      agentId: "administratif",
+      message: meetingSource,
+      promptPreview: "",
+      evaluation: null,
+      sources: [],
+    });
+
+    const forwardedContext = [
+      "Demande d'appel agent issue d'une reunion IA.",
+      `Agent demande : ${targetAgent.label}`,
+      `Raison de l'appel : ${reason}`,
+      "",
+      "CONTEXTE INITIAL",
+      context,
+      "",
+      "ORDRE DU JOUR DE LA REUNION",
+      meetingResponse.agenda,
+      "",
+      "SOURCE REUNION",
+      meetingSource,
+    ].join("\n");
+
+    const forwardedPrompt = `Le collectif estime qu'il faut te saisir maintenant. Travaille dans ton propre langage metier. Dis ce que tu prends en charge, ton risque specifique, ce que tu dois verifier tout de suite, et la prochaine action utile. Motif de saisine : ${reason}`;
+
+    try {
+      const result = await fetch("/api/agents/run", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          agentId: targetAgent.id,
+          context: forwardedContext,
+          userPrompt: forwardedPrompt,
+          evaluateEktSolo: false,
+        }),
+      });
+
+      if (!result.ok) {
+        throw new Error("L'appel a cet agent a echoue.");
+      }
+
+      const data = (await result.json()) as ApiResponse;
+      setResponse(data);
+    } catch (callError) {
+      setError(callError instanceof Error ? callError.message : "Erreur inconnue.");
     } finally {
       setIsLoading(false);
     }
@@ -466,7 +579,11 @@ export function CockpitClient() {
           onRelayTargetChange={(agentId) => setRelayTargetAgentId(agentId as AgentId)}
           onRelayToAgent={handleRelayToAgent}
         />
-        <MeetingPanel meeting={meetingResponse} isLoading={isLoading && !response} />
+        <MeetingPanel
+          meeting={meetingResponse}
+          isLoading={isLoading && !response}
+          onCallRequestedAgent={handleCallRequestedAgent}
+        />
         <WorkingMemoryPanel
           memory={memory}
           selectedAgentId={selectedAgentId}

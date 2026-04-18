@@ -43,14 +43,19 @@ export async function POST(request: Request) {
       useWeb: body.useWeb,
     });
 
-    const evaluation =
-      body.agentId === "ekt" && body.evaluateEktSolo
-        ? await evaluateEktSoloResponse({
-            context: enrichedContext,
-            userPrompt: body.userPrompt,
-            response: result.message,
-          })
-        : null;
+    let evaluation = null;
+
+    if (body.agentId === "ekt" && body.evaluateEktSolo) {
+      try {
+        evaluation = await evaluateEktSoloResponse({
+          context: enrichedContext,
+          userPrompt: body.userPrompt,
+          response: result.message,
+        });
+      } catch {
+        evaluation = null;
+      }
+    }
 
     if (result.missingApiKey) {
       return NextResponse.json({

@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { readDocumentContent } from "../../../../lib/documents";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export async function GET(
   _request: Request,
   context: { params: { id: string } }
@@ -18,4 +21,3 @@ export async function GET(
     );
   }
 }
-

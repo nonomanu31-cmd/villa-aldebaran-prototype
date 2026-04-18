@@ -1,6 +1,9 @@
 import { HistoryList } from "../../components/HistoryList";
 import { readHistory } from "../../lib/storage";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function HistoryPage() {
   const history = await readHistory();
 

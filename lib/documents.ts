@@ -1,5 +1,5 @@
-import { get, list } from "@vercel/blob";
-import { readdir, readFile } from "node:fs/promises";
+import { del, get, list } from "@vercel/blob";
+import { readdir, readFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { readMeetingReports } from "./meeting-reports";
 
@@ -17,6 +17,12 @@ export type DocumentEntry = {
     | "import";
   description: string;
   filePath?: string;
+};
+
+export type ImportedDocumentLocation = {
+  fileName: string;
+  localPath: string;
+  blobPath: string;
 };
 
 const importsDirectory = path.join(process.cwd(), "data", "imports");
@@ -238,6 +244,56 @@ async function dedupeImportedDocuments(documents: DocumentEntry[]) {
   });
 
   return Array.from(unique.values()).sort((a, b) => a.title.localeCompare(b.title, "fr"));
+}
+
+export async function resolveImportedDocumentLocation(
+  id: string
+): Promise<ImportedDocumentLocation | null> {
+  const importedDocuments = await dedupeImportedDocuments([
+    ...(await getImportedDocuments()),
+    ...(await getBlobImportedDocuments()),
+  ]);
+  const document = importedDocuments.find((entry) => entry.id === id);
+
+  if (!document) {
+    return null;
+  }
+
+  return {
+    fileName: document.title,
+    localPath: path.join(importsDirectory, document.title),
+    blobPath: `${importedDocumentsBlobPrefix}${document.title}`,
+  };
+}
+
+export async function deleteImportedDocument(id: string) {
+  const location = await resolveImportedDocumentLocation(id);
+
+  if (!location) {
+    throw new Error("Document importe introuvable.");
+  }
+
+  try {
+    await unlink(location.localPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+      throw error;
+    }
+  }
+
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    try {
+      await del(location.blobPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+
+      if (!message.toLowerCase().includes("not found")) {
+        console.warn(`Blob delete unavailable for ${location.blobPath}.`, error);
+      }
+    }
+  }
+
+  return location;
 }
 
 async function extractImportedDocumentContent(filePath: string) {

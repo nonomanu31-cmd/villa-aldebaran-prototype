@@ -15,6 +15,7 @@ export function DocumentLibrary() {
   const [file, setFile] = useState<File | null>(null);
   const [uploadStatus, setUploadStatus] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     async function loadDocuments() {
@@ -82,6 +83,54 @@ export function DocumentLibrary() {
       );
     } finally {
       setIsUploading(false);
+    }
+  }
+
+  async function handleDeleteSelected() {
+    if (!selectedDocument || selectedDocument.category !== "import" || isDeleting) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Supprimer le document "${selectedDocument.title}" ?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setUploadStatus("");
+
+    try {
+      const result = await fetch(`/api/documents/${selectedDocument.id}`, {
+        method: "DELETE",
+      });
+      const data = (await result.json()) as { ok?: boolean; error?: string; title?: string };
+
+      if (!result.ok || !data.ok) {
+        throw new Error(data.error || "La suppression du document a echoue.");
+      }
+
+      const refreshedDocuments = await loadDocuments();
+
+      const nextDocument =
+        refreshedDocuments.find((entry) => entry.id !== selectedDocument.id) ?? null;
+
+      if (nextDocument) {
+        await loadDocument(nextDocument.id);
+      } else {
+        setSelectedDocument(null);
+      }
+
+      setUploadStatus(`Document supprime : ${data.title || selectedDocument.title}`);
+      setFile(null);
+    } catch (error) {
+      setUploadStatus(
+        error instanceof Error ? error.message : "Erreur inconnue pendant la suppression."
+      );
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -155,9 +204,21 @@ export function DocumentLibrary() {
                 <h2 style={styles.viewerTitle}>{selectedDocument.title}</h2>
                 <p style={styles.viewerMeta}>{selectedDocument.description}</p>
               </div>
-              <span style={styles.badge}>
-                {loadingId === selectedDocument.id ? "Chargement..." : selectedDocument.category}
-              </span>
+              <div style={styles.viewerHeaderActions}>
+                <span style={styles.badge}>
+                  {loadingId === selectedDocument.id ? "Chargement..." : selectedDocument.category}
+                </span>
+                {selectedDocument.category === "import" ? (
+                  <button
+                    type="button"
+                    onClick={handleDeleteSelected}
+                    disabled={isDeleting}
+                    style={isDeleting ? styles.deleteButtonDisabled : styles.deleteButton}
+                  >
+                    {isDeleting ? "Suppression..." : "Supprimer ce document"}
+                  </button>
+                ) : null}
+              </div>
             </div>
             <pre style={styles.content}>{selectedDocument.content}</pre>
           </>
@@ -294,6 +355,11 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 12,
     marginBottom: 16,
   },
+  viewerHeaderActions: {
+    display: "grid",
+    gap: 8,
+    justifyItems: "end",
+  },
   viewerTitle: {
     margin: 0,
     color: "#1d2433",
@@ -308,6 +374,24 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "8px 12px",
     color: "#324055",
     fontSize: 13,
+  },
+  deleteButton: {
+    border: "1px solid rgba(164, 42, 42, 0.18)",
+    borderRadius: 999,
+    padding: "10px 14px",
+    background: "#fff1f1",
+    color: "#8f1f1f",
+    cursor: "pointer",
+    fontWeight: 700,
+  },
+  deleteButtonDisabled: {
+    border: "1px solid rgba(31,40,55,0.08)",
+    borderRadius: 999,
+    padding: "10px 14px",
+    background: "#f1f3f5",
+    color: "#7b818b",
+    cursor: "not-allowed",
+    fontWeight: 700,
   },
   content: {
     margin: 0,

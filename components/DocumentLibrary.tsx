@@ -211,7 +211,7 @@ export function DocumentLibrary() {
   async function handleMoveSelected() {
     if (
       !selectedDocument
-      || selectedDocument.category !== "import"
+      || !selectedDocument.movable
       || !targetFolderId
       || isMoving
     ) {
@@ -416,16 +416,11 @@ export function DocumentLibrary() {
               <div>
                 <h2 style={styles.viewerTitle}>{selectedDocument.title}</h2>
                 <p style={styles.viewerMeta}>{selectedDocument.description}</p>
-              </div>
-              <div style={styles.viewerHeaderActions}>
-                <span style={styles.badge}>
-                  {loadingId === selectedDocument.id ? "Chargement..." : selectedDocument.category}
-                </span>
-                    {selectedDocument.movable ? (
-                      <>
-                        <div style={styles.moveCard}>
-                          <strong style={styles.moveTitle}>
-                            Dossier actuel : {selectedDocument.folderLabel || "A trier"}
+                {selectedDocument.movable ? (
+                  <div style={styles.inlineMoveSection}>
+                    <div style={styles.moveCard}>
+                      <strong style={styles.moveTitle}>
+                        Dossier actuel : {selectedDocument.folderLabel || "A trier"}
                       </strong>
                       <div style={styles.moveRow}>
                         <select
@@ -452,10 +447,19 @@ export function DocumentLibrary() {
                           {isMoving ? "Deplacement..." : "Deplacer"}
                         </button>
                       </div>
-                        </div>
-                        {selectedDocument.category === "import" ? (
-                          <button
-                            type="button"
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+              <div style={styles.viewerHeaderActions}>
+                <span style={styles.badge}>
+                  {loadingId === selectedDocument.id ? "Chargement..." : selectedDocument.category}
+                </span>
+                {selectedDocument.movable ? (
+                  <>
+                    {selectedDocument.category === "import" ? (
+                      <button
+                        type="button"
                             onClick={handleDeleteSelected}
                             disabled={isDeleting}
                             style={isDeleting ? styles.deleteButtonDisabled : styles.deleteButton}
@@ -690,6 +694,10 @@ const styles: Record<string, React.CSSProperties> = {
   viewerMeta: {
     margin: "8px 0 0",
     color: "#566072",
+  },
+  inlineMoveSection: {
+    marginTop: 14,
+    maxWidth: 520,
   },
   badge: {
     borderRadius: 999,

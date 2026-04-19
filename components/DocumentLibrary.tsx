@@ -22,6 +22,8 @@ export function DocumentLibrary() {
   const [targetFolderId, setTargetFolderId] = useState("");
   const [selectedFolderFilter, setSelectedFolderFilter] = useState("all");
   const [isMoving, setIsMoving] = useState(false);
+  const [showLibraryOrganisation, setShowLibraryOrganisation] = useState(false);
+  const [showDocumentOrganisation, setShowDocumentOrganisation] = useState(false);
 
   useEffect(() => {
     async function loadDocuments() {
@@ -265,6 +267,7 @@ export function DocumentLibrary() {
     if (filteredDocuments.length === 0) {
       setSelectedDocument(null);
       setTargetFolderId("");
+      setShowDocumentOrganisation(false);
       return;
     }
 
@@ -316,59 +319,72 @@ export function DocumentLibrary() {
           </p>
         </div>
         <div style={styles.uploadCard}>
-          <strong style={styles.uploadTitle}>Organisation documentaire</strong>
+          <div style={styles.collapsibleHeader}>
+            <strong style={styles.uploadTitle}>Organisation documentaire</strong>
+            <button
+              type="button"
+              onClick={() => setShowLibraryOrganisation((current) => !current)}
+              style={styles.secondaryButton}
+            >
+              {showLibraryOrganisation ? "Masquer" : "Afficher"}
+            </button>
+          </div>
           <p style={styles.uploadText}>
-            Creez vos dossiers, filtrez la liste et classez vos fichiers importes pour garder un centre documentaire propre.
+            Ces outils restent caches par defaut pour ne pas encombrer l'ecran.
           </p>
-          <div style={styles.organisationHint}>
-            Cette zone sert a ranger les documents importes. Les dossiers de base sont deja prets.
-          </div>
-          <div style={styles.folderCreateRow}>
-            <input
-              type="text"
-              value={newFolderLabel}
-              onChange={(event) => setNewFolderLabel(event.target.value)}
-              placeholder="Nom du dossier"
-              style={styles.folderInput}
-            />
-            <button
-              type="button"
-              onClick={handleCreateFolder}
-              disabled={!newFolderLabel.trim() || isCreatingFolder}
-              style={
-                !newFolderLabel.trim() || isCreatingFolder
-                  ? styles.uploadButtonDisabled
-                  : styles.uploadButton
-              }
-            >
-              {isCreatingFolder ? "Creation..." : "Creer"}
-            </button>
-          </div>
-          <div style={styles.folderList}>
-            <button
-              type="button"
-              onClick={() => setSelectedFolderFilter("all")}
-              style={{
-                ...styles.folderChip,
-                ...(selectedFolderFilter === "all" ? styles.folderChipActive : {}),
-              }}
-            >
-              Tous les documents
-            </button>
-            {folders.map((folder) => (
-              <button
-                key={folder.id}
-                type="button"
-                onClick={() => setSelectedFolderFilter(folder.id)}
-                style={{
-                  ...styles.folderChip,
-                  ...(selectedFolderFilter === folder.id ? styles.folderChipActive : {}),
-                }}
-              >
-                {folder.label} ({importFolderCounts[folder.id] ?? 0})
-              </button>
-            ))}
-          </div>
+          {showLibraryOrganisation ? (
+            <>
+              <div style={styles.organisationHint}>
+                Cette zone sert a ranger les documents importes et les reunions. Les dossiers de base sont deja prets.
+              </div>
+              <div style={styles.folderCreateRow}>
+                <input
+                  type="text"
+                  value={newFolderLabel}
+                  onChange={(event) => setNewFolderLabel(event.target.value)}
+                  placeholder="Nom du dossier"
+                  style={styles.folderInput}
+                />
+                <button
+                  type="button"
+                  onClick={handleCreateFolder}
+                  disabled={!newFolderLabel.trim() || isCreatingFolder}
+                  style={
+                    !newFolderLabel.trim() || isCreatingFolder
+                      ? styles.uploadButtonDisabled
+                      : styles.uploadButton
+                  }
+                >
+                  {isCreatingFolder ? "Creation..." : "Creer"}
+                </button>
+              </div>
+              <div style={styles.folderList}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedFolderFilter("all")}
+                  style={{
+                    ...styles.folderChip,
+                    ...(selectedFolderFilter === "all" ? styles.folderChipActive : {}),
+                  }}
+                >
+                  Tous les documents
+                </button>
+                {folders.map((folder) => (
+                  <button
+                    key={folder.id}
+                    type="button"
+                    onClick={() => setSelectedFolderFilter(folder.id)}
+                    style={{
+                      ...styles.folderChip,
+                      ...(selectedFolderFilter === folder.id ? styles.folderChipActive : {}),
+                    }}
+                  >
+                    {folder.label} ({importFolderCounts[folder.id] ?? 0})
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
         </div>
         <div style={styles.listHeader}>
           <strong style={styles.listHeaderTitle}>
@@ -418,48 +434,46 @@ export function DocumentLibrary() {
                 <p style={styles.viewerMeta}>{selectedDocument.description}</p>
                 {selectedDocument.movable ? (
                   <div style={styles.inlineMoveSection}>
-                    <div style={styles.moveCard}>
-                      <strong style={styles.moveTitle}>
-                        Dossier actuel : {selectedDocument.folderLabel || "A trier"}
-                      </strong>
-                      <div style={styles.moveRow}>
-                        <select
-                          value={targetFolderId}
-                          onChange={(event) => setTargetFolderId(event.target.value)}
-                          style={styles.moveSelect}
-                        >
-                          {folders.map((folder) => (
-                            <option key={folder.id} value={folder.id}>
-                              {folder.label}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={handleMoveSelected}
-                          disabled={!targetFolderId || isMoving}
-                          style={
-                            !targetFolderId || isMoving
-                              ? styles.uploadButtonDisabled
-                              : styles.uploadButton
-                          }
-                        >
-                          {isMoving ? "Deplacement..." : "Deplacer"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-              <div style={styles.viewerHeaderActions}>
-                <span style={styles.badge}>
-                  {loadingId === selectedDocument.id ? "Chargement..." : selectedDocument.category}
-                </span>
-                {selectedDocument.movable ? (
-                  <>
-                    {selectedDocument.category === "import" ? (
-                      <button
-                        type="button"
+                    <button
+                      type="button"
+                      onClick={() => setShowDocumentOrganisation((current) => !current)}
+                      style={styles.secondaryButton}
+                    >
+                      {showDocumentOrganisation ? "Masquer l'organisation" : "Organiser ce document"}
+                    </button>
+                    {showDocumentOrganisation ? (
+                      <div style={styles.moveCard}>
+                        <strong style={styles.moveTitle}>
+                          Dossier actuel : {selectedDocument.folderLabel || "A trier"}
+                        </strong>
+                        <div style={styles.moveRow}>
+                          <select
+                            value={targetFolderId}
+                            onChange={(event) => setTargetFolderId(event.target.value)}
+                            style={styles.moveSelect}
+                          >
+                            {folders.map((folder) => (
+                              <option key={folder.id} value={folder.id}>
+                                {folder.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={handleMoveSelected}
+                            disabled={!targetFolderId || isMoving}
+                            style={
+                              !targetFolderId || isMoving
+                                ? styles.uploadButtonDisabled
+                                : styles.uploadButton
+                            }
+                          >
+                            {isMoving ? "Deplacement..." : "Deplacer"}
+                          </button>
+                        </div>
+                        {selectedDocument.category === "import" ? (
+                          <button
+                            type="button"
                             onClick={handleDeleteSelected}
                             disabled={isDeleting}
                             style={isDeleting ? styles.deleteButtonDisabled : styles.deleteButton}
@@ -467,8 +481,15 @@ export function DocumentLibrary() {
                             {isDeleting ? "Suppression..." : "Supprimer ce document"}
                           </button>
                         ) : null}
-                      </>
+                      </div>
                     ) : null}
+                  </div>
+                ) : null}
+              </div>
+              <div style={styles.viewerHeaderActions}>
+                <span style={styles.badge}>
+                  {loadingId === selectedDocument.id ? "Chargement..." : selectedDocument.category}
+                </span>
               </div>
             </div>
             <pre style={styles.content}>{selectedDocument.content}</pre>
@@ -552,6 +573,12 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 8,
   },
+  collapsibleHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+  },
   uploadTitle: {
     color: "#1d2433",
   },
@@ -580,6 +607,15 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#d7ddd8",
     color: "#6a6f79",
     cursor: "not-allowed",
+    fontWeight: 700,
+  },
+  secondaryButton: {
+    border: "1px solid rgba(31,40,55,0.1)",
+    borderRadius: 999,
+    padding: "8px 12px",
+    background: "#fff",
+    color: "#214263",
+    cursor: "pointer",
     fontWeight: 700,
   },
   uploadStatus: {
@@ -685,7 +721,7 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 8,
     justifyItems: "end",
-    minWidth: 260,
+    minWidth: 120,
   },
   viewerTitle: {
     margin: 0,
@@ -698,6 +734,8 @@ const styles: Record<string, React.CSSProperties> = {
   inlineMoveSection: {
     marginTop: 14,
     maxWidth: 520,
+    display: "grid",
+    gap: 10,
   },
   badge: {
     borderRadius: 999,

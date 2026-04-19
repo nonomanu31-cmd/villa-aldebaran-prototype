@@ -20,7 +20,7 @@ export function DocumentLibrary() {
   const [newFolderLabel, setNewFolderLabel] = useState("");
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [targetFolderId, setTargetFolderId] = useState("");
-  const [selectedFolderFilter, setSelectedFolderFilter] = useState("all");
+  const [selectedFolderFilter, setSelectedFolderFilter] = useState("folder:imports-a-trier");
   const [isMoving, setIsMoving] = useState(false);
   const [showLibraryOrganisation, setShowLibraryOrganisation] = useState(false);
   const [showDocumentOrganisation, setShowDocumentOrganisation] = useState(false);
@@ -255,12 +255,42 @@ export function DocumentLibrary() {
     }
   }
 
+  const virtualGroups = [
+    { id: "folder:imports-a-trier", label: "A trier" },
+    { id: "folder:imports-technique", label: "Technique" },
+    { id: "folder:imports-juridique", label: "Juridique" },
+    { id: "folder:imports-finances", label: "Finances" },
+    { id: "folder:imports-administratif", label: "Administratif" },
+    { id: "folder:imports-reunions", label: "Reunions" },
+    { id: "category:prompt", label: "Prompts" },
+    { id: "category:architecture", label: "Architecture" },
+    { id: "category:data", label: "Donnees" },
+    { id: "category:prototype", label: "Prototype" },
+    { id: "category:registry", label: "Registres" },
+    { id: "category:governance", label: "Gouvernance" },
+  ];
+
+  const customFolderGroups = folders
+    .filter((folder) => !folder.system)
+    .map((folder) => ({
+      id: `folder:${folder.id}`,
+      label: folder.label,
+    }));
+
+  const availableGroups = [...virtualGroups, ...customFolderGroups];
+
   const filteredDocuments = documents.filter((document) => {
-    if (selectedFolderFilter === "all") {
-      return true;
+    if (selectedFolderFilter.startsWith("folder:")) {
+      const folderId = selectedFolderFilter.replace("folder:", "");
+      return document.folderId === folderId;
     }
 
-    return document.folderId === selectedFolderFilter;
+    if (selectedFolderFilter.startsWith("category:")) {
+      const category = selectedFolderFilter.replace("category:", "");
+      return document.category === category;
+    }
+
+    return false;
   });
 
   useEffect(() => {
@@ -276,8 +306,20 @@ export function DocumentLibrary() {
     }
   }, [selectedFolderFilter, documents]);
 
-  const importFolderCounts = folders.reduce<Record<string, number>>((counts, folder) => {
-    counts[folder.id] = documents.filter((document) => document.folderId === folder.id).length;
+  const importFolderCounts = availableGroups.reduce<Record<string, number>>((counts, group) => {
+    if (group.id.startsWith("folder:")) {
+      const folderId = group.id.replace("folder:", "");
+      counts[group.id] = documents.filter((document) => document.folderId === folderId).length;
+      return counts;
+    }
+
+    if (group.id.startsWith("category:")) {
+      const category = group.id.replace("category:", "");
+      counts[group.id] = documents.filter((document) => document.category === category).length;
+      return counts;
+    }
+
+    counts[group.id] = 0;
     return counts;
   }, {});
 
@@ -329,14 +371,8 @@ export function DocumentLibrary() {
               {showLibraryOrganisation ? "Masquer" : "Afficher"}
             </button>
           </div>
-          <p style={styles.uploadText}>
-            Ces outils restent caches par defaut pour ne pas encombrer l'ecran.
-          </p>
           {showLibraryOrganisation ? (
             <>
-              <div style={styles.organisationHint}>
-                Cette zone sert a ranger les documents importes et les reunions. Les dossiers de base sont deja prets.
-              </div>
               <div style={styles.folderCreateRow}>
                 <input
                   type="text"
@@ -359,27 +395,17 @@ export function DocumentLibrary() {
                 </button>
               </div>
               <div style={styles.folderList}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedFolderFilter("all")}
-                  style={{
-                    ...styles.folderChip,
-                    ...(selectedFolderFilter === "all" ? styles.folderChipActive : {}),
-                  }}
-                >
-                  Tous les documents
-                </button>
-                {folders.map((folder) => (
+                {availableGroups.map((group) => (
                   <button
-                    key={folder.id}
+                    key={group.id}
                     type="button"
-                    onClick={() => setSelectedFolderFilter(folder.id)}
+                    onClick={() => setSelectedFolderFilter(group.id)}
                     style={{
                       ...styles.folderChip,
-                      ...(selectedFolderFilter === folder.id ? styles.folderChipActive : {}),
+                      ...(selectedFolderFilter === group.id ? styles.folderChipActive : {}),
                     }}
                   >
-                    {folder.label} ({importFolderCounts[folder.id] ?? 0})
+                    {group.label} ({importFolderCounts[group.id] ?? 0})
                   </button>
                 ))}
               </div>
@@ -388,7 +414,7 @@ export function DocumentLibrary() {
         </div>
         <div style={styles.listHeader}>
           <strong style={styles.listHeaderTitle}>
-            {selectedFolderFilter === "all" ? "Documents visibles" : "Documents du dossier"}
+            Documents du groupe
           </strong>
           <span style={styles.listHeaderCount}>{filteredDocuments.length}</span>
         </div>

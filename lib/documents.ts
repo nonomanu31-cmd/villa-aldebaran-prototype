@@ -6,6 +6,7 @@ import {
   resolveDataFile,
   writePersistedJson,
 } from "./persistence";
+import { readHistory } from "./storage";
 import { readMeetingReports } from "./meeting-reports";
 
 export type DocumentEntry = {
@@ -477,6 +478,7 @@ async function extractImportedDocumentContent(filePath: string) {
 
 export async function getDocuments() {
   const meetingReports = await readMeetingReports();
+  const history = await readHistory();
   const importedDocuments = await dedupeImportedDocuments([
     ...(await getImportedDocuments()),
     ...(await getBlobImportedDocuments()),
@@ -490,8 +492,24 @@ export async function getDocuments() {
     category: "meeting",
     description: report.description,
   }));
+  const fallbackMeetingDocuments: DocumentEntry[] = history
+    .filter((entry) => entry.userPrompt.startsWith("[Reunion IA]"))
+    .map((entry) => ({
+      id: `history-${entry.id}`,
+      title:
+        entry.userPrompt.replace("[Reunion IA] ", "").trim()
+        || `Reunion archivee - ${new Date(entry.createdAt).toLocaleString("fr-FR")}`,
+      category: "meeting" as const,
+      description: `Archive reunion recuperee depuis l'historique du ${new Date(entry.createdAt).toLocaleString("fr-FR")}.`,
+    }))
+    .filter((entry) => !meetingDocuments.find((meeting) => meeting.title === entry.title));
 
-  return [...enrichedImportedDocuments, ...meetingDocuments, ...staticDocuments];
+  return [
+    ...enrichedImportedDocuments,
+    ...meetingDocuments,
+    ...fallbackMeetingDocuments,
+    ...staticDocuments,
+  ];
 }
 
 export async function readDocumentContent(id: string) {
@@ -505,6 +523,26 @@ export async function readDocumentContent(id: string) {
       category: "meeting" as const,
       description: meetingReport.description,
       content: meetingReport.content,
+    };
+  }
+
+  if (id.startsWith("history-")) {
+    const history = await readHistory();
+    const historyId = id.replace("history-", "");
+    const entry = history.find((record) => record.id === historyId);
+
+    if (!entry) {
+      throw new Error("Archive de reunion introuvable.");
+    }
+
+    return {
+      id,
+      title:
+        entry.userPrompt.replace("[Reunion IA] ", "").trim()
+        || `Reunion archivee - ${new Date(entry.createdAt).toLocaleString("fr-FR")}`,
+      category: "meeting" as const,
+      description: `Archive reunion recuperee depuis l'historique du ${new Date(entry.createdAt).toLocaleString("fr-FR")}.`,
+      content: entry.response,
     };
   }
 

@@ -265,6 +265,18 @@ export function DocumentLibrary() {
     return document.folderId === selectedFolderFilter;
   });
 
+  useEffect(() => {
+    if (filteredDocuments.length === 0) {
+      setSelectedDocument(null);
+      setTargetFolderId("");
+      return;
+    }
+
+    if (!selectedDocument || !filteredDocuments.find((entry) => entry.id === selectedDocument.id)) {
+      void loadDocument(filteredDocuments[0].id);
+    }
+  }, [selectedFolderFilter, documents]);
+
   const importFolderCounts = folders.reduce<Record<string, number>>((counts, folder) => {
     counts[folder.id] = documents.filter(
       (document) => document.category === "import" && document.folderId === folder.id
@@ -364,7 +376,18 @@ export function DocumentLibrary() {
             ))}
           </div>
         </div>
+        <div style={styles.listHeader}>
+          <strong style={styles.listHeaderTitle}>
+            {selectedFolderFilter === "all" ? "Documents visibles" : "Documents du dossier"}
+          </strong>
+          <span style={styles.listHeaderCount}>{filteredDocuments.length}</span>
+        </div>
         <div style={styles.list}>
+          {filteredDocuments.length === 0 ? (
+            <div style={styles.emptyListCard}>
+              Aucun document visible dans cette vue pour l'instant.
+            </div>
+          ) : null}
           {filteredDocuments.map((document) => {
             const selected = selectedDocument?.id === document.id;
             return (
@@ -502,6 +525,24 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 10,
     marginTop: 14,
   },
+  listHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 14,
+    gap: 10,
+  },
+  listHeaderTitle: {
+    color: "#1d2433",
+  },
+  listHeaderCount: {
+    borderRadius: 999,
+    background: "#eef5f0",
+    color: "#1f4b3f",
+    padding: "6px 10px",
+    fontSize: 12,
+    fontWeight: 700,
+  },
   uploadCard: {
     marginTop: 14,
     borderRadius: 16,
@@ -595,6 +636,14 @@ const styles: Record<string, React.CSSProperties> = {
     border: "1px solid rgba(31,40,55,0.08)",
     padding: 14,
     cursor: "pointer",
+  },
+  emptyListCard: {
+    borderRadius: 16,
+    border: "1px dashed rgba(31,40,55,0.18)",
+    background: "#fff",
+    padding: 14,
+    color: "#566072",
+    lineHeight: 1.5,
   },
   itemTitle: {
     color: "#1d2433",

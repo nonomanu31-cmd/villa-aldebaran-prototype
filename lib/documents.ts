@@ -247,9 +247,17 @@ export async function assignDocumentToFolder(documentId: string, folderId: strin
   }
 
   const location = await resolveImportedDocumentLocation(documentId);
+  const meetingReports = await readMeetingReports();
+  const history = await readHistory();
+  const isMeetingDocument =
+    meetingReports.some((report) => report.id === documentId)
+    || (
+      documentId.startsWith("history-")
+      && history.some((record) => `history-${record.id}` === documentId)
+    );
 
-  if (!location) {
-    throw new Error("Seuls les documents importes peuvent etre deplaces.");
+  if (!location && !isMeetingDocument) {
+    throw new Error("Seuls les documents importes ou les reunions peuvent etre deplaces.");
   }
 
   state.assignments[documentId] = folderId;
@@ -391,6 +399,22 @@ async function applyImportedFolder(document: DocumentEntry) {
   };
 }
 
+async function applyFolderAssignment(document: DocumentEntry, fallbackFolderId: string) {
+  const state = await readDocumentLibraryState();
+  const folderId = state.assignments[document.id] || fallbackFolderId;
+  const folder =
+    state.folders.find((entry) => entry.id === folderId)
+    || state.folders.find((entry) => entry.id === fallbackFolderId)
+    || state.folders.find((entry) => entry.id === "imports-a-trier");
+
+  return {
+    ...document,
+    folderId: folder?.id,
+    folderLabel: folder?.label,
+    movable: true,
+  };
+}
+
 export async function resolveImportedDocumentLocation(
   id: string
 ): Promise<ImportedDocumentLocation | null> {
@@ -486,13 +510,21 @@ export async function getDocuments() {
   const enrichedImportedDocuments = await Promise.all(
     importedDocuments.map((document) => applyImportedFolder(document))
   );
-  const meetingDocuments: DocumentEntry[] = meetingReports.map((report) => ({
-    id: report.id,
-    title: report.title,
-    category: "meeting",
-    description: report.description,
-  }));
-  const fallbackMeetingDocuments: DocumentEntry[] = history
+  const meetingDocuments = await Promise.all(
+    meetingReports.map((report) =>
+      applyFolderAssignment(
+        {
+          id: report.id,
+          title: report.title,
+          category: "meeting",
+          description: report.description,
+        },
+        "imports-reunions"
+      )
+    )
+  );
+  const fallbackMeetingDocuments = await Promise.all(
+    history
     .filter((entry) => entry.userPrompt.startsWith("[Reunion IA]"))
     .map((entry) => ({
       id: `history-${entry.id}`,
@@ -502,7 +534,9 @@ export async function getDocuments() {
       category: "meeting" as const,
       description: `Archive reunion recuperee depuis l'historique du ${new Date(entry.createdAt).toLocaleString("fr-FR")}.`,
     }))
-    .filter((entry) => !meetingDocuments.find((meeting) => meeting.title === entry.title));
+    .filter((entry) => !meetingDocuments.find((meeting) => meeting.title === entry.title))
+    .map((entry) => applyFolderAssignment(entry, "imports-reunions"))
+  );
 
   return [
     ...enrichedImportedDocuments,
@@ -522,6 +556,29 @@ export async function readDocumentContent(id: string) {
       title: meetingReport.title,
       category: "meeting" as const,
       description: meetingReport.description,
+      folderId: (
+        await applyFolderAssignment(
+          {
+            id: meetingReport.id,
+            title: meetingReport.title,
+            category: "meeting",
+            description: meetingReport.description,
+          },
+          "imports-reunions"
+        )
+      ).folderId,
+      folderLabel: (
+        await applyFolderAssignment(
+          {
+            id: meetingReport.id,
+            title: meetingReport.title,
+            category: "meeting",
+            description: meetingReport.description,
+          },
+          "imports-reunions"
+        )
+      ).folderLabel,
+      movable: true,
       content: meetingReport.content,
     };
   }
@@ -542,6 +599,33 @@ export async function readDocumentContent(id: string) {
         || `Reunion archivee - ${new Date(entry.createdAt).toLocaleString("fr-FR")}`,
       category: "meeting" as const,
       description: `Archive reunion recuperee depuis l'historique du ${new Date(entry.createdAt).toLocaleString("fr-FR")}.`,
+      folderId: (
+        await applyFolderAssignment(
+          {
+            id,
+            title:
+              entry.userPrompt.replace("[Reunion IA] ", "").trim()
+              || `Reunion archivee - ${new Date(entry.createdAt).toLocaleString("fr-FR")}`,
+            category: "meeting",
+            description: `Archive reunion recuperee depuis l'historique du ${new Date(entry.createdAt).toLocaleString("fr-FR")}.`,
+          },
+          "imports-reunions"
+        )
+      ).folderId,
+      folderLabel: (
+        await applyFolderAssignment(
+          {
+            id,
+            title:
+              entry.userPrompt.replace("[Reunion IA] ", "").trim()
+              || `Reunion archivee - ${new Date(entry.createdAt).toLocaleString("fr-FR")}`,
+            category: "meeting",
+            description: `Archive reunion recuperee depuis l'historique du ${new Date(entry.createdAt).toLocaleString("fr-FR")}.`,
+          },
+          "imports-reunions"
+        )
+      ).folderLabel,
+      movable: true,
       content: entry.response,
     };
   }

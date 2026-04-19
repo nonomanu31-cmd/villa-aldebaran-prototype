@@ -258,10 +258,6 @@ export function DocumentLibrary() {
       return true;
     }
 
-    if (document.category !== "import") {
-      return false;
-    }
-
     return document.folderId === selectedFolderFilter;
   });
 
@@ -278,9 +274,7 @@ export function DocumentLibrary() {
   }, [selectedFolderFilter, documents]);
 
   const importFolderCounts = folders.reduce<Record<string, number>>((counts, folder) => {
-    counts[folder.id] = documents.filter(
-      (document) => document.category === "import" && document.folderId === folder.id
-    ).length;
+    counts[folder.id] = documents.filter((document) => document.folderId === folder.id).length;
     return counts;
   }, {});
 
@@ -427,11 +421,11 @@ export function DocumentLibrary() {
                 <span style={styles.badge}>
                   {loadingId === selectedDocument.id ? "Chargement..." : selectedDocument.category}
                 </span>
-                {selectedDocument.category === "import" ? (
-                  <>
-                    <div style={styles.moveCard}>
-                      <strong style={styles.moveTitle}>
-                        Dossier actuel : {selectedDocument.folderLabel || "A trier"}
+                    {selectedDocument.movable ? (
+                      <>
+                        <div style={styles.moveCard}>
+                          <strong style={styles.moveTitle}>
+                            Dossier actuel : {selectedDocument.folderLabel || "A trier"}
                       </strong>
                       <div style={styles.moveRow}>
                         <select
@@ -458,17 +452,19 @@ export function DocumentLibrary() {
                           {isMoving ? "Deplacement..." : "Deplacer"}
                         </button>
                       </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleDeleteSelected}
-                      disabled={isDeleting}
-                      style={isDeleting ? styles.deleteButtonDisabled : styles.deleteButton}
-                    >
-                      {isDeleting ? "Suppression..." : "Supprimer ce document"}
-                    </button>
-                  </>
-                ) : null}
+                        </div>
+                        {selectedDocument.category === "import" ? (
+                          <button
+                            type="button"
+                            onClick={handleDeleteSelected}
+                            disabled={isDeleting}
+                            style={isDeleting ? styles.deleteButtonDisabled : styles.deleteButton}
+                          >
+                            {isDeleting ? "Suppression..." : "Supprimer ce document"}
+                          </button>
+                        ) : null}
+                      </>
+                    ) : null}
               </div>
             </div>
             <pre style={styles.content}>{selectedDocument.content}</pre>

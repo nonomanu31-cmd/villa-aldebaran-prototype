@@ -26,14 +26,17 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(arrayBuffer);
     const localDirectory = path.join(process.cwd(), "data", "imports");
     const localPath = path.join(localDirectory, fileName);
+    const runningOnVercel = process.env.VERCEL === "1";
 
     let localWriteError: NodeJS.ErrnoException | null = null;
 
-    try {
-      await mkdir(localDirectory, { recursive: true });
-      await writeFile(localPath, buffer);
-    } catch (error) {
-      localWriteError = error as NodeJS.ErrnoException;
+    if (!runningOnVercel) {
+      try {
+        await mkdir(localDirectory, { recursive: true });
+        await writeFile(localPath, buffer);
+      } catch (error) {
+        localWriteError = error as NodeJS.ErrnoException;
+      }
     }
 
     let blobUploaded = false;
@@ -50,6 +53,12 @@ export async function POST(request: Request) {
       } catch (error) {
         console.warn(`Blob upload unavailable for ${fileName}.`, error);
       }
+    }
+
+    if (runningOnVercel && !blobUploaded) {
+      throw new Error(
+        "Le stockage web Blob n'est pas disponible pour cet import."
+      );
     }
 
     if (localWriteError && !blobUploaded && !process.env.BLOB_READ_WRITE_TOKEN) {

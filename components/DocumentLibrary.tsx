@@ -310,10 +310,13 @@ export function DocumentLibrary() {
           </p>
         </div>
         <div style={styles.uploadCard}>
-          <strong style={styles.uploadTitle}>Dossiers imports</strong>
+          <strong style={styles.uploadTitle}>Organisation documentaire</strong>
           <p style={styles.uploadText}>
-            Creez vos dossiers puis deplacez les fichiers importes pour garder un centre documentaire propre.
+            Creez vos dossiers, filtrez la liste et classez vos fichiers importes pour garder un centre documentaire propre.
           </p>
+          <div style={styles.organisationHint}>
+            Cette zone sert a ranger les documents importes. Les dossiers de base sont deja prets.
+          </div>
           <div style={styles.folderCreateRow}>
             <input
               type="text"
@@ -562,6 +565,15 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     flexWrap: "wrap",
     gap: 8,
+  },
+  organisationHint: {
+    borderRadius: 12,
+    background: "#eef5f0",
+    color: "#1f4b3f",
+    padding: "10px 12px",
+    fontSize: 13,
+    lineHeight: 1.5,
+    border: "1px solid rgba(31,75,63,0.12)",
   },
   folderChip: {
     borderRadius: 999,

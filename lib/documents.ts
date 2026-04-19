@@ -417,17 +417,25 @@ export async function deleteImportedDocument(id: string) {
     throw new Error("Document importe introuvable.");
   }
 
-  try {
-    await unlink(location.localPath);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-      throw error;
+  const runningOnVercel = process.env.VERCEL === "1";
+  let localDeleted = false;
+  let blobDeleted = false;
+
+  if (!runningOnVercel) {
+    try {
+      await unlink(location.localPath);
+      localDeleted = true;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
     }
   }
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     try {
       await del(location.blobPath);
+      blobDeleted = true;
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
 
@@ -435,6 +443,14 @@ export async function deleteImportedDocument(id: string) {
         console.warn(`Blob delete unavailable for ${location.blobPath}.`, error);
       }
     }
+  }
+
+  if (runningOnVercel && !blobDeleted) {
+    throw new Error("La suppression web n'a pas pu etre effectuee.");
+  }
+
+  if (!runningOnVercel && !localDeleted && !blobDeleted) {
+    console.warn(`Aucune suppression effective pour ${location.fileName}.`);
   }
 
   return location;

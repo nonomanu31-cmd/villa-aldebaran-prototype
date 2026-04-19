@@ -19,6 +19,8 @@ import type { EktEvaluation } from "../../lib/types";
 import { parseModelResponse } from "../../lib/response-parser";
 import { canAgentUseWeb, getWebAccessRule } from "../../lib/web-access";
 
+const cockpitUiStateKey = "villa-aldebaran-cockpit-ui";
+
 type ApiResponse = {
   agentId: AgentId;
   message: string;
@@ -92,6 +94,93 @@ export function CockpitClient() {
   const relayOptions = agents.filter(
     (agent) => agent.id !== (response?.agentId ?? selectedAgentId) && agent.id !== "ekt"
   );
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(cockpitUiStateKey);
+
+      if (!raw) {
+        return;
+      }
+
+      const saved = JSON.parse(raw) as {
+        selectedAgentId?: AgentId;
+        meetingAgentIds?: AgentId[];
+        meetingModeratorId?: AgentId;
+        meetingAgenda?: string;
+        relayTargetAgentId?: AgentId;
+        useWeb?: boolean;
+        fastMode?: boolean;
+      };
+
+      if (saved.selectedAgentId && agents.find((agent) => agent.id === saved.selectedAgentId)) {
+        setSelectedAgentId(saved.selectedAgentId);
+      }
+
+      if (saved.meetingAgentIds?.length) {
+        setMeetingAgentIds(
+          saved.meetingAgentIds.filter((agentId) =>
+            agents.some((agent) => agent.id === agentId)
+          )
+        );
+      }
+
+      if (
+        saved.meetingModeratorId
+        && agents.some((agent) => agent.id === saved.meetingModeratorId)
+      ) {
+        setMeetingModeratorId(saved.meetingModeratorId);
+      }
+
+      if (typeof saved.meetingAgenda === "string" && saved.meetingAgenda.trim()) {
+        setMeetingAgenda(saved.meetingAgenda);
+      }
+
+      if (
+        saved.relayTargetAgentId
+        && agents.some((agent) => agent.id === saved.relayTargetAgentId)
+      ) {
+        setRelayTargetAgentId(saved.relayTargetAgentId);
+      }
+
+      if (typeof saved.useWeb === "boolean") {
+        setUseWeb(saved.useWeb);
+      }
+
+      if (typeof saved.fastMode === "boolean") {
+        setFastMode(saved.fastMode);
+      }
+    } catch {
+      // Ignore local UI state parsing errors.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        cockpitUiStateKey,
+        JSON.stringify({
+          selectedAgentId,
+          meetingAgentIds,
+          meetingModeratorId,
+          meetingAgenda,
+          relayTargetAgentId,
+          useWeb,
+          fastMode,
+        })
+      );
+    } catch {
+      // Ignore local UI state persistence errors.
+    }
+  }, [
+    selectedAgentId,
+    meetingAgentIds,
+    meetingModeratorId,
+    meetingAgenda,
+    relayTargetAgentId,
+    useWeb,
+    fastMode,
+  ]);
 
   const placeholders: Record<AgentId, string> = {
     ekt: "Exemple : Donne-moi une lecture de la semaine sur les risques de circulation PMR et les tensions chantier.",

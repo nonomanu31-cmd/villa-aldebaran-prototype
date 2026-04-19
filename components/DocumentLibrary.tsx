@@ -8,6 +8,8 @@ type LoadedDocument = DocumentEntry & {
   content: string;
 };
 
+const documentLibraryUiStateKey = "villa-aldebaran-document-library-ui";
+
 export function DocumentLibrary() {
   const [documents, setDocuments] = useState<DocumentEntry[]>([]);
   const [folders, setFolders] = useState<DocumentFolder[]>([]);
@@ -24,6 +26,51 @@ export function DocumentLibrary() {
   const [isMoving, setIsMoving] = useState(false);
   const [showLibraryOrganisation, setShowLibraryOrganisation] = useState(false);
   const [showDocumentOrganisation, setShowDocumentOrganisation] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(documentLibraryUiStateKey);
+
+      if (!raw) {
+        return;
+      }
+
+      const saved = JSON.parse(raw) as {
+        selectedFolderFilter?: string;
+        showLibraryOrganisation?: boolean;
+        showDocumentOrganisation?: boolean;
+      };
+
+      if (typeof saved.selectedFolderFilter === "string" && saved.selectedFolderFilter.trim()) {
+        setSelectedFolderFilter(saved.selectedFolderFilter);
+      }
+
+      if (typeof saved.showLibraryOrganisation === "boolean") {
+        setShowLibraryOrganisation(saved.showLibraryOrganisation);
+      }
+
+      if (typeof saved.showDocumentOrganisation === "boolean") {
+        setShowDocumentOrganisation(saved.showDocumentOrganisation);
+      }
+    } catch {
+      // Ignore local UI state parsing errors.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        documentLibraryUiStateKey,
+        JSON.stringify({
+          selectedFolderFilter,
+          showLibraryOrganisation,
+          showDocumentOrganisation,
+        })
+      );
+    } catch {
+      // Ignore local UI state persistence errors.
+    }
+  }, [selectedFolderFilter, showLibraryOrganisation, showDocumentOrganisation]);
 
   useEffect(() => {
     async function loadDocuments() {

@@ -90,6 +90,7 @@ export async function runAgentModel(params: {
   context: string;
   userPrompt: string;
   useWeb?: boolean;
+  speedMode?: "normal" | "fast";
 }) {
   const agent = findAgentById(params.agentId);
 
@@ -109,7 +110,9 @@ export async function runAgentModel(params: {
   ].join("\n");
 
   const apiKey = process.env.OPENAI_API_KEY;
-  const model = process.env.OPENAI_MODEL || "gpt-5.2";
+  const standardModel = process.env.OPENAI_MODEL || "gpt-5.2";
+  const fastModel = process.env.OPENAI_FAST_MODEL || "gpt-5.4-mini";
+  const model = params.speedMode === "fast" ? fastModel : standardModel;
 
   if (!apiKey) {
     return {

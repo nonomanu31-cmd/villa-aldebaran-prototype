@@ -19,6 +19,8 @@ export function WorkingMemoryPanel({
   activeContextDraft,
   onActiveContextDraftChange,
 }: WorkingMemoryPanelProps) {
+  const canCapture = Boolean(responseText);
+
   async function capture(
     type:
       | "decision"
@@ -77,28 +79,34 @@ export function WorkingMemoryPanel({
         Enregistrer le contexte
       </button>
 
+      <p style={styles.captureHint}>
+        {canCapture
+          ? "Vous pouvez maintenant capturer la reponse active dans la memoire de travail."
+          : "Les boutons ci-dessous s'activent apres qu'un agent a produit une reponse complete."}
+      </p>
+
       <div style={styles.captureRow}>
         <button
-          style={styles.secondaryButton}
+          style={canCapture ? styles.secondaryButton : styles.secondaryButtonDisabled}
           type="button"
           onClick={() => capture("decision")}
-          disabled={!responseText}
+          disabled={!canCapture}
         >
           Capturer en decision
         </button>
         <button
-          style={styles.secondaryButton}
+          style={canCapture ? styles.secondaryButton : styles.secondaryButtonDisabled}
           type="button"
           onClick={() => capture("alert")}
-          disabled={!responseText}
+          disabled={!canCapture}
         >
           Capturer en alerte
         </button>
         <button
-          style={styles.secondaryButton}
+          style={canCapture ? styles.secondaryButton : styles.secondaryButtonDisabled}
           type="button"
           onClick={() => capture("openQuestion")}
-          disabled={!responseText}
+          disabled={!canCapture}
         >
           Capturer en question
         </button>
@@ -108,34 +116,34 @@ export function WorkingMemoryPanel({
         <h3 style={styles.sectionTitle}>Registre d&apos;incertitude</h3>
         <div style={styles.captureRow}>
           <button
-            style={styles.secondaryButton}
+            style={canCapture ? styles.secondaryButton : styles.secondaryButtonDisabled}
             type="button"
             onClick={() => capture("uncertaintyMinor")}
-            disabled={!responseText}
+            disabled={!canCapture}
           >
             Incertitude mineure
           </button>
           <button
-            style={styles.secondaryButton}
+            style={canCapture ? styles.secondaryButton : styles.secondaryButtonDisabled}
             type="button"
             onClick={() => capture("uncertaintyStructuring")}
-            disabled={!responseText}
+            disabled={!canCapture}
           >
             Incertitude structurante
           </button>
           <button
-            style={styles.secondaryButton}
+            style={canCapture ? styles.secondaryButton : styles.secondaryButtonDisabled}
             type="button"
             onClick={() => capture("uncertaintyCritical")}
-            disabled={!responseText}
+            disabled={!canCapture}
           >
             Incertitude critique
           </button>
           <button
-            style={styles.secondaryButton}
+            style={canCapture ? styles.secondaryButton : styles.secondaryButtonDisabled}
             type="button"
             onClick={() => capture("uncertaintyCategoryShift")}
-            disabled={!responseText}
+            disabled={!canCapture}
           >
             Change la categorie
           </button>
@@ -313,6 +321,12 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#fff",
     cursor: "pointer",
   },
+  captureHint: {
+    margin: "12px 0 0",
+    color: "#6a6f79",
+    fontSize: 13,
+    lineHeight: 1.5,
+  },
   captureRow: {
     display: "flex",
     gap: 10,
@@ -326,6 +340,14 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#fff",
     color: "#1d2433",
     cursor: "pointer",
+  },
+  secondaryButtonDisabled: {
+    border: "1px solid rgba(31,40,55,0.08)",
+    borderRadius: 999,
+    padding: "10px 14px",
+    background: "#f3f4f1",
+    color: "#9aa3ad",
+    cursor: "not-allowed",
   },
   section: {
     marginTop: 18,

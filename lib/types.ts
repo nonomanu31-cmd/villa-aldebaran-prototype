@@ -23,6 +23,7 @@ export type AgentRunRequest = {
   userPrompt: string;
   useWeb?: boolean;
   evaluateEktSolo?: boolean;
+  speedMode?: "normal" | "fast";
 };
 
 export type EktEvaluationCriterion = {

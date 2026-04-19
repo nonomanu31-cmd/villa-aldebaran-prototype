@@ -13,6 +13,8 @@ type PromptConsoleProps = {
   canUseWeb: boolean;
   useWeb: boolean;
   onUseWebChange: (value: boolean) => void;
+  fastMode: boolean;
+  onFastModeChange: (value: boolean) => void;
   webNote: string;
   ektActionLabel?: string;
   relayTargetAgentId?: string;
@@ -36,6 +38,8 @@ export function PromptConsole({
   canUseWeb,
   useWeb,
   onUseWebChange,
+  fastMode,
+  onFastModeChange,
   webNote,
   ektActionLabel,
   relayTargetAgentId,
@@ -75,6 +79,20 @@ export function PromptConsole({
           Activer la recherche Internet pour cet agent
           <small style={styles.webHint}>
             {canUseWeb ? webNote : "Cet agent n'a pas d'acces web autonome."}
+          </small>
+        </span>
+      </label>
+      <label style={styles.webToggle}>
+        <input
+          type="checkbox"
+          checked={fastMode}
+          onChange={(event) => onFastModeChange(event.target.checked)}
+          disabled={isLoading}
+        />
+        <span>
+          Mode rapide pour les lectures simples
+          <small style={styles.webHint}>
+            Utilise un modele plus leger et evite certains calculs secondaires.
           </small>
         </span>
       </label>

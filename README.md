@@ -43,6 +43,7 @@ Copiez `.env.example` en `.env.local` puis renseignez :
 ```text
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-5.2
+OPENAI_FAST_MODEL=gpt-5.4-mini
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
@@ -52,6 +53,7 @@ BLOB_STORE_ACCESS=private
 ```
 
 Vous pouvez changer `OPENAI_MODEL` si vous voulez utiliser un autre modele.
+Le cockpit peut aussi utiliser `OPENAI_FAST_MODEL` pour accelerer les lectures simples.
 L'agent `Conseil 3 IA` fonctionne meme si une ou deux cles manquent, mais il compare mieux quand les trois connecteurs sont renseignes.
 
 ## Persistance Vercel

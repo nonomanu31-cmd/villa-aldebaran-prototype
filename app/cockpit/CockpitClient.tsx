@@ -71,6 +71,7 @@ export function CockpitClient() {
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [sourceResponse, setSourceResponse] = useState<ApiResponse | null>(null);
   const [useWeb, setUseWeb] = useState(false);
+  const [fastMode, setFastMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [memory, setMemory] = useState<WorkingMemory | null>(null);
@@ -190,7 +191,8 @@ export function CockpitClient() {
           context,
           userPrompt,
           useWeb,
-          evaluateEktSolo: targetAgentId === "ekt",
+          evaluateEktSolo: targetAgentId === "ekt" && !fastMode,
+          speedMode: fastMode ? "fast" : "normal",
         }),
       });
 
@@ -252,6 +254,7 @@ export function CockpitClient() {
           context: forwardedContext,
           userPrompt: ektDecisionPrompt,
           evaluateEktSolo: false,
+          speedMode: fastMode ? "fast" : "normal",
         }),
       });
 
@@ -364,6 +367,7 @@ export function CockpitClient() {
           context: forwardedContext,
           userPrompt: relayPrompt,
           evaluateEktSolo: false,
+          speedMode: fastMode ? "fast" : "normal",
         }),
       });
 
@@ -442,6 +446,7 @@ export function CockpitClient() {
           context: forwardedContext,
           userPrompt: forwardedPrompt,
           evaluateEktSolo: false,
+          speedMode: fastMode ? "fast" : "normal",
         }),
       });
 
@@ -568,6 +573,8 @@ export function CockpitClient() {
           canUseWeb={canAgentUseWeb(selectedAgentId)}
           useWeb={useWeb}
           onUseWebChange={setUseWeb}
+          fastMode={fastMode}
+          onFastModeChange={setFastMode}
           webNote={selectedWebRule.note}
           ektActionLabel={
             response?.agentId === "conseil3ia"

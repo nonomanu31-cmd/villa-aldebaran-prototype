@@ -41,11 +41,12 @@ export async function POST(request: Request) {
       context: enrichedContext,
       userPrompt: body.userPrompt,
       useWeb: body.useWeb,
+      speedMode: body.speedMode,
     });
 
     let evaluation = null;
 
-    if (body.agentId === "ekt" && body.evaluateEktSolo) {
+    if (body.agentId === "ekt" && body.evaluateEktSolo && body.speedMode !== "fast") {
       try {
         evaluation = await evaluateEktSoloResponse({
           context: enrichedContext,

@@ -12,6 +12,9 @@ export function DocumentLibrary() {
   const [documents, setDocuments] = useState<DocumentEntry[]>([]);
   const [selectedDocument, setSelectedDocument] = useState<LoadedDocument | null>(null);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     async function loadDocuments() {
@@ -26,12 +29,60 @@ export function DocumentLibrary() {
     void loadDocuments();
   }, []);
 
+  async function loadDocuments() {
+    const result = await fetch("/api/documents");
+    const data = (await result.json()) as { documents: DocumentEntry[] };
+    setDocuments(data.documents);
+    return data.documents;
+  }
+
   async function loadDocument(id: string) {
     setLoadingId(id);
     const result = await fetch(`/api/documents/${id}`);
     const data = (await result.json()) as { document?: LoadedDocument };
     setSelectedDocument(data.document ?? null);
     setLoadingId(null);
+  }
+
+  async function handleUpload() {
+    if (!file) {
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadStatus("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const result = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = (await result.json()) as { ok?: boolean; error?: string };
+
+      if (!result.ok || !data.ok) {
+        throw new Error(data.error || "L'import du document a echoue.");
+      }
+
+      const refreshedDocuments = await loadDocuments();
+      const importedDocument = refreshedDocuments.find((entry) => entry.title === file.name);
+
+      if (importedDocument) {
+        await loadDocument(importedDocument.id);
+      }
+
+      setUploadStatus(`Import termine : ${file.name}`);
+      setFile(null);
+    } catch (error) {
+      setUploadStatus(
+        error instanceof Error ? error.message : "Erreur inconnue pendant l'import."
+      );
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   return (
@@ -47,8 +98,30 @@ export function DocumentLibrary() {
         </div>
         <h1 style={styles.title}>Centre documentaire</h1>
         <p style={styles.text}>
-          Documents structurants du systeme, prompts finaux, references prototype et comptes rendus de reunion.
+          Documents structurants du systeme, imports projet, prompts finaux, references prototype et comptes rendus de reunion.
         </p>
+        <div style={styles.uploadCard}>
+          <strong style={styles.uploadTitle}>Importer un document</strong>
+          <p style={styles.uploadText}>
+            PDF, DOCX, TXT, MD, JSON, CSV et LOG.
+          </p>
+          <input
+            type="file"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            style={styles.fileInput}
+          />
+          <button
+            type="button"
+            onClick={handleUpload}
+            disabled={!file || isUploading}
+            style={!file || isUploading ? styles.uploadButtonDisabled : styles.uploadButton}
+          >
+            {isUploading ? "Import en cours..." : "Importer le fichier"}
+          </button>
+          <p style={styles.uploadStatus}>
+            {uploadStatus || (file ? `Pret a importer : ${file.name}` : "Aucun fichier selectionne.")}
+          </p>
+        </div>
         <div style={styles.list}>
           {documents.map((document) => {
             const selected = selectedDocument?.id === document.id;
@@ -139,6 +212,51 @@ const styles: Record<string, React.CSSProperties> = {
     display: "grid",
     gap: 10,
     marginTop: 14,
+  },
+  uploadCard: {
+    marginTop: 14,
+    borderRadius: 16,
+    border: "1px solid rgba(31,40,55,0.08)",
+    background: "#f8f7f4",
+    padding: 14,
+    display: "grid",
+    gap: 8,
+  },
+  uploadTitle: {
+    color: "#1d2433",
+  },
+  uploadText: {
+    margin: 0,
+    color: "#566072",
+    lineHeight: 1.5,
+    fontSize: 14,
+  },
+  fileInput: {
+    font: "inherit",
+  },
+  uploadButton: {
+    border: 0,
+    borderRadius: 999,
+    padding: "10px 14px",
+    background: "#1f4b3f",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: 700,
+  },
+  uploadButtonDisabled: {
+    border: 0,
+    borderRadius: 999,
+    padding: "10px 14px",
+    background: "#d7ddd8",
+    color: "#6a6f79",
+    cursor: "not-allowed",
+    fontWeight: 700,
+  },
+  uploadStatus: {
+    margin: 0,
+    color: "#566072",
+    lineHeight: 1.5,
+    fontSize: 13,
   },
   item: {
     textAlign: "left",

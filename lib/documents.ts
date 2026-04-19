@@ -1,4 +1,5 @@
-import { readFile } from "node:fs/promises";
+import { get, list } from "@vercel/blob";
+import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { readMeetingReports } from "./meeting-reports";
 
@@ -12,10 +13,15 @@ export type DocumentEntry = {
     | "prototype"
     | "registry"
     | "governance"
-    | "meeting";
+    | "meeting"
+    | "import";
   description: string;
   filePath?: string;
 };
+
+const importsDirectory = path.join(process.cwd(), "data", "imports");
+const readableImportExtensions = new Set([".md", ".txt", ".json", ".csv", ".log"]);
+const importedDocumentsBlobPrefix = "imports/";
 
 export const staticDocuments: DocumentEntry[] = [
   {
@@ -111,8 +117,154 @@ export const staticDocuments: DocumentEntry[] = [
   },
 ];
 
+function buildImportedDocumentId(fileName: string) {
+  return `import-${fileName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+}
+
+async function getImportedDocuments(): Promise<DocumentEntry[]> {
+  try {
+    const entries = await readdir(importsDirectory, { withFileTypes: true });
+
+    return entries
+      .filter((entry) => entry.isFile())
+      .map((entry) => ({
+        id: buildImportedDocumentId(entry.name),
+        title: entry.name,
+        category: "import" as const,
+        description: "Document importe depuis le dossier data/imports pour nourrir le projet.",
+        filePath: path.join(importsDirectory, entry.name),
+      }))
+      .sort((a, b) => a.title.localeCompare(b.title, "fr"));
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return [];
+    }
+
+    throw error;
+  }
+}
+
+async function getBlobImportedDocuments(): Promise<DocumentEntry[]> {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return [];
+  }
+
+  try {
+    const result = await list({ prefix: importedDocumentsBlobPrefix });
+
+    return result.blobs
+      .map((blob) => {
+        const fileName = blob.pathname.replace(importedDocumentsBlobPrefix, "");
+
+        return {
+          id: buildImportedDocumentId(fileName),
+          title: fileName,
+          category: "import" as const,
+          description: "Document importe via l'application pour nourrir le projet.",
+          filePath: blob.pathname,
+        };
+      })
+      .sort((a, b) => a.title.localeCompare(b.title, "fr"));
+  } catch (error) {
+    console.warn("Blob import list unavailable.", error);
+    return [];
+  }
+}
+
+async function extractContentFromBuffer(buffer: Buffer, fileName: string) {
+  const extension = path.extname(fileName).toLowerCase();
+
+  if (readableImportExtensions.has(extension)) {
+    return buffer.toString("utf8");
+  }
+
+  if (extension === ".docx") {
+    const mammothModule = await import("mammoth");
+    const mammoth = mammothModule.default ?? mammothModule;
+    const result = await mammoth.extractRawText({ buffer });
+
+    return [
+      result.value.trim() || "Aucun texte exploitable n'a ete extrait du fichier DOCX.",
+      ...(result.messages?.length
+        ? [
+            "",
+            "Messages d'extraction :",
+            ...result.messages.map((message) => `- ${message.type} : ${message.message}`),
+          ]
+        : []),
+    ].join("\n");
+  }
+
+  if (extension === ".pdf") {
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: buffer });
+
+    try {
+      const result = await parser.getText();
+      return result.text?.trim() || "Aucun texte exploitable n'a ete extrait du PDF.";
+    } finally {
+      await parser.destroy();
+    }
+  }
+
+  return [
+    `Le fichier ${fileName} est bien reference dans le projet.`,
+    "",
+    `Type detecte : ${extension || "inconnu"}`,
+    "",
+    "Ce prototype lit directement les fichiers texte et extrait maintenant le texte des .pdf et .docx.",
+    "Les autres formats binaires doivent encore etre convertis ou traites par une couche d'extraction supplementaire.",
+  ].join("\n");
+}
+
+async function dedupeImportedDocuments(documents: DocumentEntry[]) {
+  const unique = new Map<string, DocumentEntry>();
+
+  documents.forEach((document) => {
+    if (!unique.has(document.id)) {
+      unique.set(document.id, document);
+      return;
+    }
+
+    const current = unique.get(document.id);
+
+    if (
+      current
+      && current.filePath?.startsWith(importedDocumentsBlobPrefix)
+      && !document.filePath?.startsWith(importedDocumentsBlobPrefix)
+    ) {
+      unique.set(document.id, document);
+    }
+  });
+
+  return Array.from(unique.values()).sort((a, b) => a.title.localeCompare(b.title, "fr"));
+}
+
+async function extractImportedDocumentContent(filePath: string) {
+  if (filePath.startsWith(importedDocumentsBlobPrefix) && process.env.BLOB_READ_WRITE_TOKEN) {
+    const result = await get(filePath, {
+      access: process.env.BLOB_STORE_ACCESS === "public" ? "public" : "private",
+      useCache: false,
+    });
+
+    if (!result || result.statusCode !== 200 || !result.stream) {
+      throw new Error("Document Blob introuvable.");
+    }
+
+    const arrayBuffer = await new Response(result.stream).arrayBuffer();
+    return extractContentFromBuffer(Buffer.from(arrayBuffer), path.basename(filePath));
+  }
+
+  const buffer = await readFile(filePath);
+  return extractContentFromBuffer(buffer, path.basename(filePath));
+}
+
 export async function getDocuments() {
   const meetingReports = await readMeetingReports();
+  const importedDocuments = await dedupeImportedDocuments([
+    ...(await getImportedDocuments()),
+    ...(await getBlobImportedDocuments()),
+  ]);
   const meetingDocuments: DocumentEntry[] = meetingReports.map((report) => ({
     id: report.id,
     title: report.title,
@@ -120,7 +272,7 @@ export async function getDocuments() {
     description: report.description,
   }));
 
-  return [...meetingDocuments, ...staticDocuments];
+  return [...importedDocuments, ...meetingDocuments, ...staticDocuments];
 }
 
 export async function readDocumentContent(id: string) {
@@ -137,13 +289,19 @@ export async function readDocumentContent(id: string) {
     };
   }
 
-  const document = staticDocuments.find((entry) => entry.id === id);
+  const importedDocuments = await dedupeImportedDocuments([
+    ...(await getImportedDocuments()),
+    ...(await getBlobImportedDocuments()),
+  ]);
+  const document =
+    importedDocuments.find((entry) => entry.id === id)
+    || staticDocuments.find((entry) => entry.id === id);
 
   if (!document || !document.filePath) {
     throw new Error("Document introuvable.");
   }
 
-  const content = await readFile(document.filePath, "utf8");
+  const content = await extractImportedDocumentContent(document.filePath);
 
   return {
     ...document,

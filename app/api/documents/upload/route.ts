@@ -27,8 +27,16 @@ export async function POST(request: Request) {
     const localDirectory = path.join(process.cwd(), "data", "imports");
     const localPath = path.join(localDirectory, fileName);
 
-    await mkdir(localDirectory, { recursive: true });
-    await writeFile(localPath, buffer);
+    let localWriteError: NodeJS.ErrnoException | null = null;
+
+    try {
+      await mkdir(localDirectory, { recursive: true });
+      await writeFile(localPath, buffer);
+    } catch (error) {
+      localWriteError = error as NodeJS.ErrnoException;
+    }
+
+    let blobUploaded = false;
 
     if (process.env.BLOB_READ_WRITE_TOKEN) {
       try {
@@ -38,9 +46,24 @@ export async function POST(request: Request) {
           allowOverwrite: true,
           contentType: file.type || undefined,
         });
+        blobUploaded = true;
       } catch (error) {
         console.warn(`Blob upload unavailable for ${fileName}.`, error);
       }
+    }
+
+    if (localWriteError && !blobUploaded && !process.env.BLOB_READ_WRITE_TOKEN) {
+      throw localWriteError;
+    }
+
+    if (
+      localWriteError
+      && localWriteError.code !== "EROFS"
+      && localWriteError.code !== "EPERM"
+      && localWriteError.code !== "EACCES"
+      && !blobUploaded
+    ) {
+      throw localWriteError;
     }
 
     return NextResponse.json({

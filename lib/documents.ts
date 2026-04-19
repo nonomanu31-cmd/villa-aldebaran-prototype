@@ -1,6 +1,11 @@
 import { del, get, list } from "@vercel/blob";
 import { readdir, readFile, unlink } from "node:fs/promises";
 import path from "node:path";
+import {
+  readPersistedJson,
+  resolveDataFile,
+  writePersistedJson,
+} from "./persistence";
 import { readMeetingReports } from "./meeting-reports";
 
 export type DocumentEntry = {
@@ -17,6 +22,9 @@ export type DocumentEntry = {
     | "import";
   description: string;
   filePath?: string;
+  folderId?: string;
+  folderLabel?: string;
+  movable?: boolean;
 };
 
 export type ImportedDocumentLocation = {
@@ -25,9 +33,36 @@ export type ImportedDocumentLocation = {
   blobPath: string;
 };
 
+export type DocumentFolder = {
+  id: string;
+  label: string;
+  system?: boolean;
+};
+
+type DocumentLibraryState = {
+  folders: DocumentFolder[];
+  assignments: Record<string, string>;
+};
+
 const importsDirectory = path.join(process.cwd(), "data", "imports");
 const readableImportExtensions = new Set([".md", ".txt", ".json", ".csv", ".log"]);
 const importedDocumentsBlobPrefix = "imports/";
+const documentLibraryPath = resolveDataFile("document-library.json");
+const documentLibraryBlobPath = "app-data/document-library.json";
+
+const defaultFolders: DocumentFolder[] = [
+  { id: "imports-a-trier", label: "A trier", system: true },
+  { id: "imports-technique", label: "Technique", system: true },
+  { id: "imports-juridique", label: "Juridique", system: true },
+  { id: "imports-finances", label: "Finances", system: true },
+  { id: "imports-administratif", label: "Administratif", system: true },
+  { id: "imports-reunions", label: "Reunions", system: true },
+];
+
+const defaultDocumentLibraryState: DocumentLibraryState = {
+  folders: defaultFolders,
+  assignments: {},
+};
 
 export const staticDocuments: DocumentEntry[] = [
   {
@@ -125,6 +160,100 @@ export const staticDocuments: DocumentEntry[] = [
 
 function buildImportedDocumentId(fileName: string) {
   return `import-${fileName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+}
+
+function slugifyFolderLabel(label: string) {
+  return label
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+}
+
+async function readDocumentLibraryState() {
+  const state = await readPersistedJson<DocumentLibraryState>(
+    documentLibraryBlobPath,
+    documentLibraryPath,
+    defaultDocumentLibraryState
+  );
+
+  const folders = [...defaultFolders];
+
+  state.folders.forEach((folder) => {
+    if (!folders.find((entry) => entry.id === folder.id)) {
+      folders.push(folder);
+    }
+  });
+
+  return {
+    folders,
+    assignments: state.assignments ?? {},
+  };
+}
+
+async function writeDocumentLibraryState(state: DocumentLibraryState) {
+  await writePersistedJson(documentLibraryBlobPath, documentLibraryPath, state);
+}
+
+export async function getDocumentFolders() {
+  const state = await readDocumentLibraryState();
+  return state.folders;
+}
+
+export async function createDocumentFolder(label: string) {
+  const cleanLabel = label.trim();
+
+  if (!cleanLabel) {
+    throw new Error("Le nom du dossier est vide.");
+  }
+
+  const state = await readDocumentLibraryState();
+  const existing = state.folders.find(
+    (folder) => folder.label.toLowerCase() === cleanLabel.toLowerCase()
+  );
+
+  if (existing) {
+    return existing;
+  }
+
+  const baseId = slugifyFolderLabel(cleanLabel) || "dossier";
+  let candidateId = `imports-${baseId}`;
+  let index = 2;
+
+  while (state.folders.find((folder) => folder.id === candidateId)) {
+    candidateId = `imports-${baseId}-${index}`;
+    index += 1;
+  }
+
+  const folder = {
+    id: candidateId,
+    label: cleanLabel,
+  };
+
+  state.folders.push(folder);
+  await writeDocumentLibraryState(state);
+  return folder;
+}
+
+export async function assignDocumentToFolder(documentId: string, folderId: string) {
+  const state = await readDocumentLibraryState();
+  const folder = state.folders.find((entry) => entry.id === folderId);
+
+  if (!folder) {
+    throw new Error("Dossier introuvable.");
+  }
+
+  const location = await resolveImportedDocumentLocation(documentId);
+
+  if (!location) {
+    throw new Error("Seuls les documents importes peuvent etre deplaces.");
+  }
+
+  state.assignments[documentId] = folderId;
+  await writeDocumentLibraryState(state);
+  return folder;
 }
 
 async function getImportedDocuments(): Promise<DocumentEntry[]> {
@@ -246,6 +375,21 @@ async function dedupeImportedDocuments(documents: DocumentEntry[]) {
   return Array.from(unique.values()).sort((a, b) => a.title.localeCompare(b.title, "fr"));
 }
 
+async function applyImportedFolder(document: DocumentEntry) {
+  const state = await readDocumentLibraryState();
+  const folderId = state.assignments[document.id] || "imports-a-trier";
+  const folder =
+    state.folders.find((entry) => entry.id === folderId)
+    || state.folders.find((entry) => entry.id === "imports-a-trier");
+
+  return {
+    ...document,
+    folderId: folder?.id ?? "imports-a-trier",
+    folderLabel: folder?.label ?? "A trier",
+    movable: true,
+  };
+}
+
 export async function resolveImportedDocumentLocation(
   id: string
 ): Promise<ImportedDocumentLocation | null> {
@@ -321,6 +465,9 @@ export async function getDocuments() {
     ...(await getImportedDocuments()),
     ...(await getBlobImportedDocuments()),
   ]);
+  const enrichedImportedDocuments = await Promise.all(
+    importedDocuments.map((document) => applyImportedFolder(document))
+  );
   const meetingDocuments: DocumentEntry[] = meetingReports.map((report) => ({
     id: report.id,
     title: report.title,
@@ -328,7 +475,7 @@ export async function getDocuments() {
     description: report.description,
   }));
 
-  return [...importedDocuments, ...meetingDocuments, ...staticDocuments];
+  return [...enrichedImportedDocuments, ...meetingDocuments, ...staticDocuments];
 }
 
 export async function readDocumentContent(id: string) {
@@ -349,8 +496,11 @@ export async function readDocumentContent(id: string) {
     ...(await getImportedDocuments()),
     ...(await getBlobImportedDocuments()),
   ]);
+  const enrichedImportedDocuments = await Promise.all(
+    importedDocuments.map((document) => applyImportedFolder(document))
+  );
   const document =
-    importedDocuments.find((entry) => entry.id === id)
+    enrichedImportedDocuments.find((entry) => entry.id === id)
     || staticDocuments.find((entry) => entry.id === id);
 
   if (!document || !document.filePath) {

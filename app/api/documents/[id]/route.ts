@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  assignDocumentToFolder,
   deleteImportedDocument,
   readDocumentContent,
   resolveImportedDocumentLocation,
@@ -53,6 +54,34 @@ export async function DELETE(
           error instanceof Error ? error.message : "Erreur suppression document.",
       },
       { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(
+  request: Request,
+  context: { params: { id: string } }
+) {
+  try {
+    const body = (await request.json()) as { folderId?: string };
+
+    if (!body.folderId) {
+      return NextResponse.json({ error: "Dossier manquant." }, { status: 400 });
+    }
+
+    const folder = await assignDocumentToFolder(context.params.id, body.folderId);
+
+    return NextResponse.json({
+      ok: true,
+      folder,
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Erreur deplacement document.",
+      },
+      { status: 400 }
     );
   }
 }

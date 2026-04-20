@@ -87,7 +87,7 @@ export function ResponsePanel({
               ))}
             </div>
           ) : (
-            <pre style={styles.pre}>Prototype initial.{`\n\n`}La reponse apparaitra ici.</pre>
+            <pre style={styles.pre}>Aucune reponse pour l&apos;instant.</pre>
           )}
         </div>
         {showDebug ? (

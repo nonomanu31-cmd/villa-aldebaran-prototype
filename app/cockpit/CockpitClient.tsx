@@ -20,6 +20,10 @@ import { parseModelResponse } from "../../lib/response-parser";
 import { canAgentUseWeb, getWebAccessRule } from "../../lib/web-access";
 
 const cockpitUiStateKey = "villa-aldebaran-cockpit-ui";
+const legacyDefaultContext =
+  "Contexte initial du prototype : Villa Aldebaran, phase de cadrage systeme.";
+const legacyDefaultPrompt =
+  "Exemple : Donne-moi une lecture de la semaine sur les risques de circulation PMR et les tensions chantier.";
 
 type ApiResponse = {
   agentId: AgentId;
@@ -64,12 +68,8 @@ function buildStructuredRelaySource(sourceAgentId: AgentId, sourceMessage: strin
 export function CockpitClient() {
   const [isMobile, setIsMobile] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState<AgentId>("ekt");
-  const [context, setContext] = useState(
-    "Contexte initial du prototype : Villa Aldebaran, phase de cadrage systeme."
-  );
-  const [userPrompt, setUserPrompt] = useState(
-    "Exemple : Donne-moi une lecture de la semaine sur les risques de circulation PMR et les tensions chantier."
-  );
+  const [context, setContext] = useState("");
+  const [userPrompt, setUserPrompt] = useState("");
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [sourceResponse, setSourceResponse] = useState<ApiResponse | null>(null);
   const [useWeb, setUseWeb] = useState(false);
@@ -150,6 +150,14 @@ export function CockpitClient() {
       if (typeof saved.fastMode === "boolean") {
         setFastMode(saved.fastMode);
       }
+
+      if ((saved as { context?: string }).context && (saved as { context?: string }).context !== legacyDefaultContext) {
+        setContext((saved as { context?: string }).context ?? "");
+      }
+
+      if ((saved as { userPrompt?: string }).userPrompt && (saved as { userPrompt?: string }).userPrompt !== legacyDefaultPrompt) {
+        setUserPrompt((saved as { userPrompt?: string }).userPrompt ?? "");
+      }
     } catch {
       // Ignore local UI state parsing errors.
     }
@@ -167,6 +175,8 @@ export function CockpitClient() {
           relayTargetAgentId,
           useWeb,
           fastMode,
+          context,
+          userPrompt,
         })
       );
     } catch {
@@ -180,27 +190,21 @@ export function CockpitClient() {
     relayTargetAgentId,
     useWeb,
     fastMode,
+    context,
+    userPrompt,
   ]);
 
   const placeholders: Record<AgentId, string> = {
-    ekt: "Exemple : Donne-moi une lecture de la semaine sur les risques de circulation PMR et les tensions chantier.",
-    vie: "Exemple : Simule les points de friction d'usage entre terrasse nord, acces PMR et flux evenementiel cette semaine.",
-    juridique:
-      "Exemple : Qualifie juridiquement l'ouverture evenementielle a 300 personnes et dis-moi ce qui est autorise, conditionnel ou interdit en l'etat.",
-    chantier:
-      "Exemple : Identifie les blocages de sequence entre souterrains, niveaux finis et validations PMR cette semaine.",
-    exploitation:
-      "Exemple : Dis-moi si l'espace evenementiel est exploitable en l'etat et quelles sont les conditions critiques a lever.",
-    finances:
-      "Exemple : Compare le cout probable d'une correction PMR maintenant versus une reprise apres second oeuvre.",
-    ecologie:
-      "Exemple : Lis les tensions eau-chaleur-vegetation de la semaine et le point de bascule a surveiller.",
-    enosirai:
-      "Exemple : Qualifie si les missions de surveillance exterieure et d'assistance PMR sont executables cette semaine.",
-    administratif:
-      "Exemple : Redige un compte rendu de reunion chantier avec decisions, actions, responsables et delais.",
-    conseil3ia:
-      "Exemple : Interroge ChatGPT, Gemini et Claude sur la strategie PMR et compare leurs convergences, divergences et angles morts.",
+    ekt: "Ecrivez votre demande a EKT.",
+    vie: "Ecrivez votre demande a l'agent Vie.",
+    juridique: "Ecrivez votre demande a l'agent Juridique.",
+    chantier: "Ecrivez votre demande a l'agent Chantier.",
+    exploitation: "Ecrivez votre demande a l'agent Exploitation.",
+    finances: "Ecrivez votre demande a l'agent Finances.",
+    ecologie: "Ecrivez votre demande a l'agent Ecologie.",
+    enosirai: "Ecrivez votre demande a ENOSIRAI.",
+    administratif: "Ecrivez votre demande a l'agent Administratif.",
+    conseil3ia: "Ecrivez votre demande au Conseil 3 IA.",
   };
 
   async function refreshMemory() {
@@ -208,6 +212,14 @@ export function CockpitClient() {
     const data = (await result.json()) as { memory: WorkingMemory };
     setMemory(data.memory);
     setActiveContextDraft(data.memory.activeContext);
+
+    setContext((current) => {
+      if (!current.trim() || current === legacyDefaultContext) {
+        return data.memory.activeContext || "";
+      }
+
+      return current;
+    });
   }
 
   async function saveActiveContext() {

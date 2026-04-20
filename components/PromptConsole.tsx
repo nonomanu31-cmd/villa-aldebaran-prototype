@@ -50,11 +50,7 @@ export function PromptConsole({
   return (
     <section style={styles.card}>
       <div style={styles.header}>
-        <div>
-          <h2 style={styles.title}>Demande</h2>
-          <p style={styles.meta}>Agent selectionne : {selectedAgentLabel}</p>
-        </div>
-        <span style={styles.keyboardHint}>Ctrl + Entree pour envoyer</span>
+        <h2 style={styles.title}>Demande</h2>
       </div>
       <textarea
         style={styles.textarea}
@@ -168,21 +164,6 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: 18,
     color: "#1d2433",
-  },
-  meta: {
-    margin: "6px 0 0",
-    color: "#6a6f79",
-    fontSize: 14,
-  },
-  keyboardHint: {
-    display: "inline-block",
-    padding: "6px 10px",
-    borderRadius: 999,
-    background: "#f2f4ef",
-    border: "1px solid rgba(31,40,55,0.08)",
-    color: "#5f6a62",
-    fontSize: 12,
-    whiteSpace: "nowrap" as const,
   },
   textarea: {
     width: "100%",

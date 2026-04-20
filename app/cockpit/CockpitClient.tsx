@@ -78,11 +78,7 @@ export function CockpitClient() {
   const [error, setError] = useState<string | null>(null);
   const [memory, setMemory] = useState<WorkingMemory | null>(null);
   const [activeContextDraft, setActiveContextDraft] = useState(context);
-  const [meetingAgentIds, setMeetingAgentIds] = useState<AgentId[]>([
-    "vie",
-    "juridique",
-    "chantier",
-  ]);
+  const [meetingAgentIds, setMeetingAgentIds] = useState<AgentId[]>([]);
   const [meetingModeratorId, setMeetingModeratorId] = useState<AgentId>("ekt");
   const [meetingAgenda, setMeetingAgenda] = useState(
     "1. Etat de la situation\n2. Points critiques\n3. Arbitrages\n4. Actions de la semaine"
@@ -195,16 +191,16 @@ export function CockpitClient() {
   ]);
 
   const placeholders: Record<AgentId, string> = {
-    ekt: "Ecrivez votre demande a EKT.",
-    vie: "Ecrivez votre demande a l'agent Vie.",
-    juridique: "Ecrivez votre demande a l'agent Juridique.",
-    chantier: "Ecrivez votre demande a l'agent Chantier.",
-    exploitation: "Ecrivez votre demande a l'agent Exploitation.",
-    finances: "Ecrivez votre demande a l'agent Finances.",
-    ecologie: "Ecrivez votre demande a l'agent Ecologie.",
-    enosirai: "Ecrivez votre demande a ENOSIRAI.",
-    administratif: "Ecrivez votre demande a l'agent Administratif.",
-    conseil3ia: "Ecrivez votre demande au Conseil 3 IA.",
+    ekt: "",
+    vie: "",
+    juridique: "",
+    chantier: "",
+    exploitation: "",
+    finances: "",
+    ecologie: "",
+    enosirai: "",
+    administratif: "",
+    conseil3ia: "",
   };
 
   async function refreshMemory() {
@@ -570,9 +566,6 @@ export function CockpitClient() {
         <div style={styles.workspaceIdentity}>
           <p style={styles.workspaceKicker}>Villa Aldebaran</p>
           <h1 style={styles.workspaceTitle}>Poste de pilotage multi-agents</h1>
-          <p style={styles.workspaceSubtitle}>
-            Decision, arbitrage, reunion, documents et memoire dans un seul espace de travail.
-          </p>
         </div>
         <div style={styles.workspaceActions}>
           <Link href="/history" style={styles.workspaceActionPrimary}>
@@ -635,15 +628,6 @@ export function CockpitClient() {
           </div>
           <WebAccessPanel />
         </div>
-        <div style={styles.helpCard}>
-          <p style={styles.helpTitle}>Prototype V1</p>
-          <p style={styles.helpText}>
-            Le cockpit branche maintenant toute l&apos;equipe d&apos;agents de Villa Aldebaran.
-          </p>
-          <Link href="/documents" style={styles.docLink}>
-            Ouvrir le centre documentaire
-          </Link>
-        </div>
       </aside>
 
       <section style={styles.center}>
@@ -651,12 +635,16 @@ export function CockpitClient() {
           <div style={styles.workspaceChip}>
             Agent actif : <strong>{selectedAgent.label}</strong>
           </div>
-          <div style={styles.workspaceChip}>
-            Reunion : <strong>{meetingAgentIds.length} participant(s)</strong>
-          </div>
-          <div style={styles.workspaceChip}>
-            Web : <strong>{canAgentUseWeb(selectedAgentId) ? "autorise" : "ferme"}</strong>
-          </div>
+          {meetingAgentIds.length > 0 ? (
+            <div style={styles.workspaceChip}>
+              Reunion : <strong>{meetingAgentIds.length} participant(s)</strong>
+            </div>
+          ) : null}
+          {useWeb ? (
+            <div style={styles.workspaceChip}>
+              Web : <strong>active</strong>
+            </div>
+          ) : null}
         </div>
         <ContextEditor value={context} onChange={setContext} />
         <PromptConsole
@@ -742,7 +730,7 @@ const styles = {
   }),
   workspaceIdentity: {
     display: "grid",
-    gap: 2,
+    gap: 0,
   },
   workspaceKicker: {
     margin: 0,
@@ -757,12 +745,6 @@ const styles = {
     lineHeight: 1.15,
     color: "#1d2433",
     fontWeight: 700,
-  },
-  workspaceSubtitle: {
-    margin: "6px 0 0",
-    color: "#5f6a62",
-    fontSize: 14,
-    lineHeight: 1.5,
   },
   workspaceActions: {
     display: "flex",
@@ -879,28 +861,5 @@ const styles = {
     border: "1px solid rgba(31,75,63,0.12)",
     fontWeight: 700,
     fontSize: 13,
-  },
-  helpCard: {
-    marginTop: 18,
-    padding: 14,
-    borderRadius: 16,
-    background: "#e7efe8",
-  },
-  helpTitle: {
-    margin: "0 0 8px",
-    fontWeight: 700,
-    color: "#1f4b3f",
-  },
-  helpText: {
-    margin: 0,
-    color: "#324239",
-    lineHeight: 1.5,
-  },
-  docLink: {
-    display: "inline-block",
-    marginTop: 12,
-    color: "#234b63",
-    textDecoration: "none",
-    fontWeight: 700,
   },
 };

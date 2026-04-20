@@ -8,7 +8,6 @@ export function ContextEditor({ value, onChange }: ContextEditorProps) {
     <section style={styles.card}>
       <div style={styles.header}>
         <h2 style={styles.title}>Contexte</h2>
-        <p style={styles.hint}>Cadre vivant du dossier pour tous les agents</p>
       </div>
       <textarea
         style={styles.textarea}
@@ -37,11 +36,6 @@ const styles: Record<string, React.CSSProperties> = {
     margin: 0,
     fontSize: 18,
     color: "#1d2433",
-  },
-  hint: {
-    margin: 0,
-    color: "#6a6f79",
-    fontSize: 13,
   },
   textarea: {
     width: "100%",

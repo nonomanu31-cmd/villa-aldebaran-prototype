@@ -49,7 +49,7 @@ export function ResponsePanel({
         <span style={styles.statusPill}>{selectedAgentId.toUpperCase()}</span>
       </div>
       <div style={styles.card}>
-        <p style={styles.meta}>Reponse active du poste de pilotage</p>
+        {response || isLoading || error ? <p style={styles.meta}>Reponse</p> : null}
         <div style={styles.outputShell}>
           {isLoading ? (
             <pre style={styles.pre}>Generation en cours...</pre>
@@ -87,7 +87,7 @@ export function ResponsePanel({
               ))}
             </div>
           ) : (
-            <pre style={styles.pre}>Aucune reponse pour l&apos;instant.</pre>
+            <div style={styles.emptyState} />
           )}
         </div>
         {showDebug ? (
@@ -258,6 +258,9 @@ const styles: Record<string, React.CSSProperties> = {
     whiteSpace: "pre-wrap",
     font: "14px/1.6 Consolas, monospace",
     color: "#243042",
+  },
+  emptyState: {
+    minHeight: 24,
   },
   details: {
     marginTop: 16,

@@ -27,12 +27,26 @@ export type UncertaintyItem = MemoryItem & {
   level: UncertaintyLevel;
 };
 
+export type DecisionRegisterItem = {
+  id: string;
+  subject: string;
+  decision: string;
+  status: string;
+  nonNegotiable: string;
+  missingData: string;
+  resumeThreshold: string;
+  owner: string;
+  sourceAgentId: string;
+  createdAt: string;
+};
+
 export type WorkingMemory = {
   activeContext: string;
   decisions: MemoryItem[];
   alerts: MemoryItem[];
   openQuestions: MemoryItem[];
   uncertainties: UncertaintyItem[];
+  decisionRegister: DecisionRegisterItem[];
 };
 
 const memoryPath = resolveDataFile("working-memory.json");
@@ -44,6 +58,7 @@ const emptyMemory: WorkingMemory = {
   alerts: [],
   openQuestions: [],
   uncertainties: [],
+  decisionRegister: [],
 };
 
 export async function readWorkingMemory(): Promise<WorkingMemory> {
@@ -107,6 +122,15 @@ export async function appendMemoryItem(
     });
   }
 
+  await writeWorkingMemory(memory);
+  return memory;
+}
+
+export async function appendDecisionRegisterItem(
+  item: DecisionRegisterItem
+): Promise<WorkingMemory> {
+  const memory = await readWorkingMemory();
+  memory.decisionRegister.unshift(item);
   await writeWorkingMemory(memory);
   return memory;
 }

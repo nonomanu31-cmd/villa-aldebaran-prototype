@@ -82,4 +82,16 @@ ARBITRAGE ECONOMIQUE
 
 SIGNAL VERS EKT
 [3 a 6 lignes sur la tension economique que le systeme doit relire]
+
+FAIT SOURCE RETENU
+[le fait unique que tu retiens comme base de lecture]
+
+SEUIL DE BASCULE
+[le seuil concret a partir duquel la situation change de statut]
+
+CONDITION DE REPRISE
+[la condition minimale qui permet de reprendre ou poursuivre]
+
+CE QUI LUI FERAIT CHANGER D'AVIS
+[la piece, mesure, observation ou verification qui modifierait ta lecture]
 ```

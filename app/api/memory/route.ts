@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  appendDecisionRegisterItem,
   appendMemoryItem,
   readWorkingMemory,
   updateActiveContext,
@@ -23,6 +24,17 @@ export async function POST(request: Request) {
         title: string;
         content: string;
         sourceAgentId: string;
+      }
+    | {
+        action: "captureDecisionRegister";
+        subject: string;
+        decision: string;
+        status: string;
+        nonNegotiable: string;
+        missingData: string;
+        resumeThreshold: string;
+        owner: string;
+        sourceAgentId: string;
       };
 
   if (body.action === "setContext") {
@@ -35,6 +47,23 @@ export async function POST(request: Request) {
       id: crypto.randomUUID(),
       title: body.title,
       content: body.content,
+      sourceAgentId: body.sourceAgentId,
+      createdAt: new Date().toISOString(),
+    });
+
+    return NextResponse.json({ memory });
+  }
+
+  if (body.action === "captureDecisionRegister") {
+    const memory = await appendDecisionRegisterItem({
+      id: crypto.randomUUID(),
+      subject: body.subject,
+      decision: body.decision,
+      status: body.status,
+      nonNegotiable: body.nonNegotiable,
+      missingData: body.missingData,
+      resumeThreshold: body.resumeThreshold,
+      owner: body.owner,
       sourceAgentId: body.sourceAgentId,
       createdAt: new Date().toISOString(),
     });

@@ -66,4 +66,16 @@ GEMINI
 
 CLAUDE
 [reponse]
+
+FAIT SOURCE RETENU
+[le fait ou consensus minimal retenu comme base de lecture]
+
+SEUIL DE BASCULE
+[le seuil concret a partir duquel la comparaison change de statut]
+
+CONDITION DE REPRISE
+[la condition minimale qui permet de reprendre ou poursuivre l'analyse]
+
+CE QUI LUI FERAIT CHANGER D'AVIS
+[la reponse, piece ou verification qui modifierait la comparaison]
 ```

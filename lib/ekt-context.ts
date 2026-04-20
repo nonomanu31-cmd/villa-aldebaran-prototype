@@ -31,6 +31,20 @@ export async function buildEktContext(baseContext: string) {
         `- ${item.title} | ${item.sourceAgentId.toUpperCase()} | ${new Date(item.createdAt).toLocaleString("fr-FR")} | ${truncate(item.content, 320)}`
     ) || ["[aucune]"]),
     "",
+    "REGISTRE DE DECISION",
+    ...(memory.decisionRegister.slice(0, 8).map(
+      (item) =>
+        [
+          `- Sujet : ${item.subject}`,
+          `  Decision : ${item.decision}`,
+          `  Statut : ${item.status}`,
+          `  Non negociable : ${item.nonNegotiable}`,
+          `  Donnee manquante : ${item.missingData}`,
+          `  Seuil de reprise : ${item.resumeThreshold}`,
+          `  Responsable : ${item.owner}`,
+        ].join("\n")
+    ) || ["[aucun]"]),
+    "",
     "ALERTES RECENTES",
     ...(memory.alerts.slice(0, 5).map(
       (item) =>

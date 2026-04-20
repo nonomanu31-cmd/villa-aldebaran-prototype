@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import type { DocumentEntry, DocumentFolder } from "../lib/documents";
+import { WorkspaceTabs } from "./WorkspaceTabs";
 
 type LoadedDocument = DocumentEntry & {
   content: string;
@@ -374,12 +374,7 @@ export function DocumentLibrary() {
     <main style={styles.page}>
       <aside style={styles.sidebar}>
         <div style={styles.topLinks}>
-          <Link href="/cockpit" style={styles.topLink}>
-            Cockpit
-          </Link>
-          <Link href="/history" style={styles.topLink}>
-            Historique
-          </Link>
+          <WorkspaceTabs active="documents" />
         </div>
         <h1 style={styles.title}>Centre documentaire</h1>
         <p style={styles.text}>
@@ -595,20 +590,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#1d2433",
   },
   topLinks: {
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
     marginBottom: 14,
-  },
-  topLink: {
-    display: "inline-block",
-    padding: "8px 12px",
-    borderRadius: 999,
-    textDecoration: "none",
-    background: "#eef5f0",
-    color: "#1f4b3f",
-    border: "1px solid rgba(31,75,63,0.12)",
-    fontWeight: 700,
   },
   text: {
     color: "#566072",

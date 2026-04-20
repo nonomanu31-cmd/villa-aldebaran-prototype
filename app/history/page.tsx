@@ -1,4 +1,5 @@
 import { HistoryList } from "../../components/HistoryList";
+import { WorkspaceTabs } from "../../components/WorkspaceTabs";
 import { readHistory } from "../../lib/storage";
 
 export const dynamic = "force-dynamic";
@@ -10,6 +11,9 @@ export default async function HistoryPage() {
   return (
     <main style={styles.page}>
       <div style={styles.card}>
+        <div style={styles.tabsRow}>
+          <WorkspaceTabs active="history" />
+        </div>
         <h1 style={styles.title}>Historique</h1>
         <p style={styles.text}>
           Cette page affiche les echanges enregistres du prototype.
@@ -33,6 +37,9 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 24,
     padding: 24,
     border: "1px solid rgba(31,40,55,0.08)",
+  },
+  tabsRow: {
+    marginBottom: 16,
   },
   title: {
     marginTop: 0,

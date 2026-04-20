@@ -13,6 +13,9 @@ export default function HomePage() {
           <Link href="/cockpit" style={styles.primaryLink}>
             Ouvrir le cockpit
           </Link>
+          <Link href="/gantt" style={styles.secondaryLink}>
+            Vue Gantt
+          </Link>
           <Link href="/history" style={styles.secondaryLink}>
             Voir l&apos;historique
           </Link>

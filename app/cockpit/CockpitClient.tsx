@@ -9,6 +9,7 @@ import { MeetingSelector } from "../../components/MeetingSelector";
 import { MeetingSettings } from "../../components/MeetingSettings";
 import { PromptConsole } from "../../components/PromptConsole";
 import { ResponsePanel } from "../../components/ResponsePanel";
+import { WorkspaceTabs } from "../../components/WorkspaceTabs";
 import { WebAccessPanel } from "../../components/WebAccessPanel";
 import { WorkingMemoryPanel } from "../../components/WorkingMemoryPanel";
 import { agents } from "../../lib/agents";
@@ -564,15 +565,15 @@ export function CockpitClient() {
     <main style={styles.page(isMobile)}>
       <header style={styles.workspaceHeader(isMobile)}>
         <div style={styles.workspaceIdentity}>
+          <div style={styles.headerTabs}>
+            <WorkspaceTabs active="cockpit" />
+          </div>
           <p style={styles.workspaceKicker}>Villa Aldebaran</p>
           <h1 style={styles.workspaceTitle}>Poste de pilotage multi-agents</h1>
         </div>
         <div style={styles.workspaceActions}>
-          <Link href="/history" style={styles.workspaceActionPrimary}>
-            Historique
-          </Link>
-          <Link href="/documents" style={styles.workspaceActionSecondary}>
-            Centre documentaire
+          <Link href="/" style={styles.workspaceActionSecondary}>
+            Accueil
           </Link>
         </div>
       </header>
@@ -581,6 +582,9 @@ export function CockpitClient() {
         <div style={styles.navRow}>
           <Link href="/" style={styles.navLink}>
             Accueil
+          </Link>
+          <Link href="/gantt" style={styles.navLink}>
+            Gantt
           </Link>
           <Link href="/history" style={styles.navLink}>
             Historique
@@ -731,6 +735,9 @@ const styles = {
   workspaceIdentity: {
     display: "grid",
     gap: 0,
+  },
+  headerTabs: {
+    marginBottom: 10,
   },
   workspaceKicker: {
     margin: 0,

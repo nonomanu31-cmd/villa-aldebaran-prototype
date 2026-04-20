@@ -61,8 +61,23 @@ const emptyMemory: WorkingMemory = {
   decisionRegister: [],
 };
 
+function normalizeWorkingMemory(raw: Partial<WorkingMemory> | null | undefined): WorkingMemory {
+  return {
+    activeContext:
+      typeof raw?.activeContext === "string" && raw.activeContext.trim()
+        ? raw.activeContext
+        : emptyMemory.activeContext,
+    decisions: Array.isArray(raw?.decisions) ? raw.decisions : [],
+    alerts: Array.isArray(raw?.alerts) ? raw.alerts : [],
+    openQuestions: Array.isArray(raw?.openQuestions) ? raw.openQuestions : [],
+    uncertainties: Array.isArray(raw?.uncertainties) ? raw.uncertainties : [],
+    decisionRegister: Array.isArray(raw?.decisionRegister) ? raw.decisionRegister : [],
+  };
+}
+
 export async function readWorkingMemory(): Promise<WorkingMemory> {
-  return readPersistedJson(memoryBlobPath, memoryPath, emptyMemory);
+  const memory = await readPersistedJson(memoryBlobPath, memoryPath, emptyMemory);
+  return normalizeWorkingMemory(memory);
 }
 
 export async function writeWorkingMemory(memory: WorkingMemory) {
